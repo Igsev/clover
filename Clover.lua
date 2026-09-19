@@ -1,217 +1,165 @@
 -- language: Luau, file: eclipse.lua, target: Roblox (external executor)
--- v4: AvatarSpoofer fixed (name+id, no keybind), universal watermark fallback, InfiniteAmmo,
--- AutoKill (rapid+wallbang+infinite range), Panic (disable all visuals), Spiderman fixed,
--- Targeting + Panic in config table with hold/toggle mode and keybinds.
+-- v15: header uses `or` fallback so executor-side shared.eclipse overrides win.
 
-shared.eclipse = {
-    ['Binds'] = {
-        ['Select'] = "C",
-        ['CameraAimbot'] = "C",
-        ['Triggerbot'] = "V",
-        ['Speed'] = "Q",
-        ['ESP'] = "P",
-        ['InfiniteRange'] = "H",
-        ['InfiniteAmmo'] = "J",
-        ['Wallbang'] = "Z",
-        ['RapidFire'] = "T",
-        ['Rage'] = "R",
-        ['DoubleTap'] = "i",
-        ['BulletDump'] = "X",
-        ['PanicGround'] = "G",
-        ['AutoKill'] = "K",
-        ['Panic'] = "L"
+shared.eclipse = shared.eclipse or {}
+
+shared.eclipse['Binds'] = shared.eclipse['Binds'] or {
+    ['Select'] = "C", ['CameraAimbot'] = "C", ['Triggerbot'] = "V",
+    ['Speed'] = "Q", ['ESP'] = "P", ['InfiniteRange'] = "H",
+    ['InfiniteAmmo'] = "J", ['Wallbang'] = "Z", ['RapidFire'] = "T",
+    ['Rage'] = "R", ['DoubleTap'] = "i", ['BulletDump'] = "X",
+    ['PanicGround'] = "G", ['AutoKill'] = "K", ['Panic'] = "L"
+}
+
+shared.eclipse['Watermark'] = shared.eclipse['Watermark'] or {
+    ['Enabled'] = true, ['Position'] = "Bottom", ['Color'] = Color3.fromRGB(124, 214, 82)
+}
+
+shared.eclipse['Targeting'] = shared.eclipse['Targeting'] or {
+    ['Mode'] = "Select", ['Keybind'] = "C", ['KeyMode'] = "Toggle"
+}
+
+shared.eclipse['Panic'] = shared.eclipse['Panic'] or {
+    ['Enabled'] = true, ['Keybind'] = "L", ['KeyMode'] = "Toggle",
+    ['DisableESP'] = true, ['DisableFOV'] = true, ['DisableWatermark'] = true,
+    ['DisableAimAssist'] = true, ['DisableCamlock'] = true
+}
+
+shared.eclipse['Checks'] = shared.eclipse['Checks'] or {
+    ['Visible'] = false, ['Knock'] = true, ['KO'] = true, ['Crew'] = true,
+    ['SelfKnock'] = true, ['Forcefield'] = true
+}
+
+shared.eclipse['Select Only'] = shared.eclipse['Select Only'] or {
+    ['ForceHit'] = true, ['ForceTrigger'] = false
+}
+
+shared.eclipse['Combat'] = shared.eclipse['Combat'] or {
+    ['Silent'] = {
+        ['Enabled'] = true, ['Hitpart'] = "Closest Point",
+        ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
+        ['ClosestPoint'] = { ['Type'] = "Advanced", ['Scale'] = 0.1, ['Density'] = 5 },
+        ['FOV'] = { ['Type'] = "3D", ['Show'] = false, ['Radius'] = 30000, ['X'] = 7.2, ['Y'] = 7.4, ['Z'] = 7.2 },
+        ['Weapon FOV Configuration'] = {
+            ['Enabled'] = false,
+            ['Revolver'] = { ['X'] = 2.5, ['Y'] = 4.8, ['Z'] = 2.8 },
+            ['Double-Barrel SG'] = { ['X'] = 3.2, ['Y'] = 5.0, ['Z'] = 2.6 },
+            ['TacticalShotgun'] = { ['X'] = 3.0, ['Y'] = 4.5, ['Z'] = 2.4 },
+            ['Other'] = { ['X'] = 4.0, ['Y'] = 5.0, ['Z'] = 3.5 }
+        }
     },
+    ['Camlock'] = {
+        ['Enabled'] = true, ['Mode'] = "Toggle", ['Hitpart'] = "Closest Part",
+        ['Perspective'] = { ['FirstPerson'] = true, ['ThirdPerson'] = true },
+        ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
+        ['Smoothing'] = { ['X'] = 0.15, ['Y'] = 0.15 },
+        ['FOV'] = { ['Type'] = "2D", ['Show'] = false, ['Radius'] = 200 }
+    },
+    ['Triggerbot'] = {
+        ['Enabled'] = false, ['Distance'] = 300, ['Mode'] = "Hold", ['Type'] = "FOV",
+        ['FrameDelay'] = { ['Enabled'] = false, ['RequiredFrames'] = 1 },
+        ['Delay'] = { ['Enabled'] = false, ['Amount'] = 0 },
+        ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
+        ['WeaponDistances'] = { ['Enabled'] = true, ['Revolver'] = 250, ['TacticalShotgun'] = 150, ['DoubleSG'] = 100, ['Silencer'] = 300 },
+        ['FOV'] = { ['Type'] = "3D", ['Show'] = false, ['Radius'] = 14, ['X'] = 2.5, ['Y'] = 3.8, ['Z'] = 2.5 },
+        ['Weapon FOV Configuration'] = {
+            ['Enabled'] = true,
+            ['Revolver'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
+            ['Double-Barrel SG'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
+            ['TacticalShotgun'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
+            ['Other'] = { ['X'] = 4.0, ['Y'] = 5.0, ['Z'] = 3.5 }
+        }
+    }
+}
 
-    ['Watermark'] = {
+shared.eclipse['Combat Enhancements'] = shared.eclipse['Combat Enhancements'] or {
+    ['Hitbox Expander'] = {
+        ['Enabled'] = false, ['ShowHitbox'] = false,
+        ['Weapon Configuration'] = {
+            ['Revolver'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
+            ['Double-Barrel SG'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
+            ['TacticalShotgun'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
+            ['Other'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 }
+        }
+    },
+    ['Spread'] = {
+        ['Enabled'] = false, ['Mode'] = "Fixed",
+        ['Weapons'] = {
+            ['DoubleSG'] = { ['Fixed'] = 0.0, ['Min'] = 0.0, ['Max'] = 0.0 },
+            ['TacticalShotgun'] = { ['Fixed'] = 0.0, ['Min'] = 0.0, ['Max'] = 0.0 }
+        }
+    }
+}
+
+shared.eclipse['Movement'] = shared.eclipse['Movement'] or {
+    ['Speed'] = { ['Enabled'] = true, ['Normal'] = 100, ['LowHealth'] = { ['Threshold'] = 17, ['Multiplier'] = 17 } },
+    ['Spiderman'] = {
+        ['Enabled'] = false, ['Keybind'] = "B", ['KeyMode'] = "Toggle",
+        ['JumpPower'] = 120, ['KnifeJumpPower'] = 130,
+        ['WallJump'] = true, ['WallClimb'] = false
+    }
+}
+
+shared.eclipse['Visuals'] = shared.eclipse['Visuals'] or {
+    ['ESP'] = {
+        ['Enabled'] = true, ['Name'] = true, ['Distance'] = false, ['FontSize'] = 13,
+        ['Color'] = Color3.fromRGB(124, 214, 82), ['TargetColor'] = Color3.fromRGB(255, 60, 60)
+    },
+    ['HealthBar'] = {
+        ['Enabled'] = true, ['ShowArmor'] = true,
+        ['HealthColor'] = Color3.fromRGB(124, 214, 82), ['ArmorColor'] = Color3.fromRGB(180, 255, 150)
+    }
+}
+
+shared.eclipse['Misc'] = shared.eclipse['Misc'] or {
+    ['SkinChanger'] = {
         ['Enabled'] = true,
-        ['Position'] = "Bottom",
-        ['Color'] = Color3.fromRGB(124, 214, 82)
+        ['DaHood'] = {
+            ['Knife'] = "Golden Age Tanto",
+            ['DoubleSG'] = "Galaxy",
+            ['TacticalShotgun'] = "Galaxy",
+            ['Revolver'] = "Golden Age",
+            ['Silencer'] = "Galaxy"
+        }
     },
-
-    ['Targeting'] = {
-        ['Mode'] = "Select",           -- "Select" or "Automatic"
-        ['Keybind'] = "C",
-        ['KeyMode'] = "Toggle"          -- "Toggle" or "Hold"
-    },
-
-    ['Panic'] = {
+    ['Infinite Range'] = {
         ['Enabled'] = true,
-        ['Keybind'] = "L",
-        ['KeyMode'] = "Toggle",         -- "Toggle" or "Hold"
-        ['DisableESP'] = true,
-        ['DisableFOV'] = true,
-        ['DisableWatermark'] = true,
-        ['DisableAimAssist'] = true,
-        ['DisableCamlock'] = true
+        ['Max Range'] = 7000,
+        ['Atomic Ext'] = 1000,
+        ['Atomic Ping Lo'] = 0.030,
+        ['Atomic Ping Hi'] = 0.150,
     },
-
-    ['Checks'] = {
-        ['Visible'] = false,
-        ['Knock'] = true,
-        ['KO'] = true,
-        ['Crew'] = true,
-        ['SelfKnock'] = true,
-        ['Forcefield'] = true
-    },
-
-    ['Select Only'] = {
-        ['ForceHit'] = true,
-        ['ForceTrigger'] = false
-    },
-
-    ['Combat'] = {
-        ['Silent'] = {
-            ['Enabled'] = true,
-            ['Hitpart'] = "Closest Point",
-            ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
-            ['ClosestPoint'] = { ['Type'] = "Advanced", ['Scale'] = 0.1, ['Density'] = 5 },
-            ['FOV'] = { ['Type'] = "3D", ['Show'] = false, ['Radius'] = 30000, ['X'] = 7.2, ['Y'] = 7.4, ['Z'] = 7.2 },
-            ['Weapon FOV Configuration'] = {
-                ['Enabled'] = false,
-                ['Revolver'] = { ['X'] = 2.5, ['Y'] = 4.8, ['Z'] = 2.8 },
-                ['Double-Barrel SG'] = { ['X'] = 3.2, ['Y'] = 5.0, ['Z'] = 2.6 },
-                ['TacticalShotgun'] = { ['X'] = 3.0, ['Y'] = 4.5, ['Z'] = 2.4 },
-                ['Other'] = { ['X'] = 4.0, ['Y'] = 5.0, ['Z'] = 3.5 }
-            }
-        },
-        ['Camlock'] = {
-            ['Enabled'] = true,
-            ['Mode'] = "Toggle",
-            ['Hitpart'] = "Closest Part",
-            ['Perspective'] = { ['FirstPerson'] = true, ['ThirdPerson'] = true },
-            ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
-            ['Smoothing'] = { ['X'] = 0.15, ['Y'] = 0.15 },
-            ['FOV'] = { ['Type'] = "2D", ['Show'] = false, ['Radius'] = 200 }
-        },
-        ['Triggerbot'] = {
-            ['Enabled'] = false,
-            ['Distance'] = 300,
-            ['Mode'] = "Hold",
-            ['Type'] = "FOV",
-            ['FrameDelay'] = { ['Enabled'] = false, ['RequiredFrames'] = 1 },
-            ['Delay'] = { ['Enabled'] = false, ['Amount'] = 0 },
-            ['Prediction'] = { ['X'] = 0, ['Y'] = 0, ['Z'] = 0 },
-            ['WeaponDistances'] = { ['Enabled'] = true, ['Revolver'] = 250, ['TacticalShotgun'] = 150, ['DoubleSG'] = 100, ['Silencer'] = 300 },
-            ['FOV'] = { ['Type'] = "3D", ['Show'] = false, ['Radius'] = 14, ['X'] = 2.5, ['Y'] = 3.8, ['Z'] = 2.5 },
-            ['Weapon FOV Configuration'] = {
-                ['Enabled'] = true,
-                ['Revolver'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
-                ['Double-Barrel SG'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
-                ['TacticalShotgun'] = { ['X'] = 5.0, ['Y'] = 5.0, ['Z'] = 5.0 },
-                ['Other'] = { ['X'] = 4.0, ['Y'] = 5.0, ['Z'] = 3.5 }
-            }
+    ['Infinite Ammo'] = { ['Enabled'] = true },
+    ['Wallbang'] = { ['Enabled'] = true },
+    ['RapidFire'] = { ['Enabled'] = true, ['Delay'] = 0.02, ['Burst'] = 3 },
+    ['Rage'] = { ['Enabled'] = false, ['Prediction'] = 0.13, ['AlwaysHit'] = true },
+    ['ForceRegisterShots'] = { ['Enabled'] = true, ['AlwaysHit'] = true },
+    ['DamageOverrider'] = {
+        ['Enabled'] = true, ['Mode'] = "Max",
+        ['Weapons'] = {
+            ['[Double-Barrel SG]'] = "Max",
+            ['[Revolver]'] = "Max",
+            ['[TacticalShotgun]'] = "Max"
         }
     },
-
-    ['Combat Enhancements'] = {
-        ['Hitbox Expander'] = {
-            ['Enabled'] = false,
-            ['ShowHitbox'] = false,
-            ['Weapon Configuration'] = {
-                ['Revolver'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
-                ['Double-Barrel SG'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
-                ['TacticalShotgun'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 },
-                ['Other'] = { ['X'] = 5, ['Y'] = 5, ['Z'] = 5 }
-            }
-        },
-        ['Spread'] = {
-            ['Enabled'] = false,
-            ['Mode'] = "Fixed",
-            ['Weapons'] = {
-                ['DoubleSG'] = { ['Fixed'] = 0.0, ['Min'] = 0.0, ['Max'] = 0.0 },
-                ['TacticalShotgun'] = { ['Fixed'] = 0.0, ['Min'] = 0.0, ['Max'] = 0.0 }
-            }
+    ['DoubleTap'] = {
+        ['Enabled'] = true, ['Mode'] = "Always",
+        ['Weapons'] = {
+            ['[Double-Barrel SG]'] = true,
+            ['[Revolver]'] = true,
+            ['[TacticalShotgun]'] = true
         }
     },
-
-    ['Movement'] = {
-        ['Speed'] = { ['Enabled'] = true, ['Normal'] = 100, ['LowHealth'] = { ['Threshold'] = 17, ['Multiplier'] = 17 } },
-        ['Spiderman'] = {
-            ['Enabled'] = false,
-            ['Keybind'] = "B",
-            ['KeyMode'] = "Toggle",
-            ['JumpPower'] = 120,
-            ['KnifeJumpPower'] = 130,
-            ['WallJump'] = true,
-            ['WallClimb'] = false
-        }
+    ['RangeEnhancer'] = { ['Enabled'] = true, ['Value'] = 12, ['UseHooks'] = true },
+    ['AutoKill'] = {
+        ['Enabled'] = false, ['Delay'] = 0.0, ['Wallbang'] = true,
+        ['InfiniteRange'] = true, ['DamageOverride'] = true, ['ForceHit'] = true
     },
-
-    ['Visuals'] = {
-        ['ESP'] = {
-            ['Enabled'] = true,
-            ['Name'] = true,
-            ['Distance'] = false,
-            ['FontSize'] = 13,
-            ['Color'] = Color3.fromRGB(124, 214, 82),
-            ['TargetColor'] = Color3.fromRGB(255, 60, 60)
-        },
-        ['HealthBar'] = {
-            ['Enabled'] = true,
-            ['ShowArmor'] = true,
-            ['HealthColor'] = Color3.fromRGB(124, 214, 82),
-            ['ArmorColor'] = Color3.fromRGB(180, 255, 150)
-        }
-    },
-
-    ['Misc'] = {
-        ['SkinChanger'] = {
-            ['Enabled'] = true,
-            ['DaHood'] = {
-                ['Knife'] = "Golden Age Tanto",
-                ['DoubleSG'] = "Galaxy",
-                ['TacticalShotgun'] = "Galaxy",
-                ['Revolver'] = "Golden Age",
-                ['Silencer'] = "Galaxy"
-            }
-        },
-        ['Infinite Range'] = {
-    ['Enabled'] = true,
-    ['Max Range'] = 7000,
-    ['Atomic Ext'] = 1000,
-    ['Atomic Ping Lo'] = 0.030,
-    ['Atomic Ping Hi'] = 0.150,
-},
-        ['Infinite Ammo'] = { ['Enabled'] = true },
-        ['Wallbang'] = { ['Enabled'] = true },
-        ['RapidFire'] = { ['Enabled'] = true, ['Delay'] = 0.02, ['Burst'] = 3 },
-        ['Rage'] = { ['Enabled'] = false, ['Prediction'] = 0.13, ['AlwaysHit'] = true },
-        ['ForceRegisterShots'] = { ['Enabled'] = true, ['AlwaysHit'] = true },
-        ['DamageOverrider'] = {
-            ['Enabled'] = true,
-            ['Mode'] = "Max",
-            ['Weapons'] = {
-                ['[Double-Barrel SG]'] = "Max",
-                ['[Revolver]'] = "Max",
-                ['[TacticalShotgun]'] = "Max"
-            }
-        },
-        ['DoubleTap'] = {
-            ['Enabled'] = true,
-            ['Mode'] = "Always",
-            ['Weapons'] = {
-                ['[Double-Barrel SG]'] = true,
-                ['[Revolver]'] = true,
-                ['[TacticalShotgun]'] = true
-            }
-        },
-        ['RangeEnhancer'] = { ['Enabled'] = true, ['Value'] = 12, ['UseHooks'] = true },
-        ['AutoKill'] = {
-            ['Enabled'] = false,
-            ['Delay'] = 0.0,
-            ['Wallbang'] = true,
-            ['InfiniteRange'] = true,
-            ['DamageOverride'] = true,
-            ['ForceHit'] = true
-        },
-        ['AntiFall'] = true,
-        ['Headless'] = false,
-        ['AvatarSpoofer'] = {
-            ['Enabled'] = false,
-            ['Target'] = '',                -- username OR numeric UserId as string
-            ['ApplyOnLoad'] = true
-        }
-    },
+    ['AntiFall'] = true,
+    ['Headless'] = false,
+    ['AvatarSpoofer'] = {
+        ['Enabled'] = false, ['Target'] = '', ['ApplyOnLoad'] = true
+    }
 }
 
 local eclipse = {}
@@ -223,12 +171,9 @@ local lp = players.LocalPlayer
 local cam = workspace.CurrentCamera
 local CoreGui = game:GetService('CoreGui')
 local GuiService = game:GetService('GuiService')
--- ============================================================
--- ATOMIC LOAD
--- ============================================================
+
 local ATOMIC_SRC = [[
-    -- paste the deobfuscated HTTP-spy module here (return Atomic),
-    -- or: return loadstring(game:HttpGet("https://your.host/httpspy.lua"))()
+    -- paste the deobfuscated HTTP-spy module here (return Atomic)
 ]]
 
 local Atomic = (function()
@@ -238,25 +183,9 @@ local Atomic = (function()
     if ok and type(res) == 'table' then return res end
     return {}
 end)()
-local CLOVER_GREEN = Color3.fromRGB(124, 214, 82)
-local CLOVER_BRIGHT = Color3.fromRGB(180, 255, 150)
-local TARGET_RED = Color3.fromRGB(255, 60, 60)
-local CLOVER_DARK = Color3.fromRGB(74, 138, 46)
-local CLOVER_GLOW = Color3.fromRGB(200, 255, 180)
-
-local math_floor = math.floor
-local math_clamp = math.clamp
-local math_min = math.min
-local math_max = math.max
-local math_abs = math.abs
-local table_sort = table.sort
-local tick_func = tick
-local type_func = type
-local tostring_func = tostring
-local tonumber_func = tonumber
 
 -- ============================================================
--- Panic — master kill switch for all visuals
+-- Panic
 -- ============================================================
 local Panic = {}
 Panic.Active = false
@@ -304,7 +233,7 @@ end
 _G.eclipse_panic = Panic
 
 -- ============================================================
--- AvatarSpoofer — client-side mirror of a target player's appearance
+-- AvatarSpoofer
 -- ============================================================
 local AvatarSpoofer = {}
 AvatarSpoofer.Enabled = false
@@ -338,20 +267,15 @@ local function AS_SnapshotCharacter(char)
             local mesh = part:FindFirstChildOfClass('SpecialMesh')
             local decal = part:FindFirstChildOfClass('Decal')
             snap.body_parts[part.Name] = {
-                Size = part.Size,
-                Color = part.Color,
-                Material = part.Material,
-                Transparency = part.Transparency,
-                Reflectance = part.Reflectance,
+                Size = part.Size, Color = part.Color, Material = part.Material,
+                Transparency = part.Transparency, Reflectance = part.Reflectance,
                 MeshId = mesh and mesh.MeshId or nil,
                 TextureId = mesh and mesh.TextureId or nil,
                 MeshScale = mesh and mesh.Scale or nil,
                 Decal = decal and decal.Texture or nil,
             }
         end
-        if part:IsA('Accessory') then
-            table.insert(snap.accessories, part:Clone())
-        end
+        if part:IsA('Accessory') then table.insert(snap.accessories, part:Clone()) end
     end
     local shirt = char:FindFirstChildOfClass('Shirt')
     local pants = char:FindFirstChildOfClass('Pants')
@@ -360,15 +284,8 @@ local function AS_SnapshotCharacter(char)
     snap.pants = pants and pants.PantsTemplate or nil
     snap.graphic = graphic and graphic.Graphic or nil
     local hum = char:FindFirstChildOfClass('Humanoid')
-    if hum then
-        snap.display_name = hum.DisplayName
-        snap.rig = hum.RigType
-    end
+    if hum then snap.display_name = hum.DisplayName snap.rig = hum.RigType end
     return snap
-end
-
-local function AS_CaptureAppearance(char)
-    return AS_SnapshotCharacter(char)
 end
 
 local function AS_ApplyAccessories(my_char, target_accessories)
@@ -391,9 +308,7 @@ local function AS_ApplyAccessories(my_char, target_accessories)
                             handle.Anchored = false
                             handle.CFrame = my_att.WorldCFrame
                             local weld = Instance.new('WeldConstraint')
-                            weld.Part0 = my_part
-                            weld.Part1 = handle
-                            weld.Parent = handle
+                            weld.Part0 = my_part weld.Part1 = handle weld.Parent = handle
                             break
                         end
                     end
@@ -408,7 +323,6 @@ local function AS_MirrorAppearance(target_app, my_char)
     if not target_app or not my_char then return end
     local my_hum = my_char:FindFirstChildOfClass('Humanoid')
     if not my_hum then return end
-
     if my_hum.RigType == target_app.rig then
         for part_name, data in pairs(target_app.body_parts) do
             local my_part = my_char:FindFirstChild(part_name)
@@ -418,66 +332,36 @@ local function AS_MirrorAppearance(target_app, my_char)
                 my_part.Material = data.Material
                 local my_mesh = my_part:FindFirstChildOfClass('SpecialMesh')
                 if data.MeshId or data.TextureId then
-                    if not my_mesh then
-                        my_mesh = Instance.new('SpecialMesh')
-                        my_mesh.Parent = my_part
-                    end
+                    if not my_mesh then my_mesh = Instance.new('SpecialMesh') my_mesh.Parent = my_part end
                     if data.MeshId then my_mesh.MeshId = data.MeshId end
                     if data.TextureId then my_mesh.TextureId = data.TextureId end
                     if data.MeshScale then my_mesh.Scale = data.MeshScale end
-                elseif my_mesh then
-                    my_mesh:Destroy()
-                end
+                elseif my_mesh then my_mesh:Destroy() end
                 local my_decal = my_part:FindFirstChildOfClass('Decal')
                 if data.Decal then
-                    if not my_decal then
-                        my_decal = Instance.new('Decal')
-                        my_decal.Parent = my_part
-                    end
+                    if not my_decal then my_decal = Instance.new('Decal') my_decal.Parent = my_part end
                     my_decal.Texture = data.Decal
-                elseif my_decal then
-                    my_decal:Destroy()
-                end
+                elseif my_decal then my_decal:Destroy() end
             end
         end
     end
-
     AS_ApplyAccessories(my_char, target_app.accessories)
-
-    if target_app.display_name then
-        my_hum.DisplayName = target_app.display_name
-    end
-
+    if target_app.display_name then my_hum.DisplayName = target_app.display_name end
     local my_shirt = my_char:FindFirstChildOfClass('Shirt')
     if target_app.shirt then
-        if not my_shirt then
-            my_shirt = Instance.new('Shirt')
-            my_shirt.Parent = my_char
-        end
+        if not my_shirt then my_shirt = Instance.new('Shirt') my_shirt.Parent = my_char end
         my_shirt.ShirtTemplate = target_app.shirt
-    elseif my_shirt then
-        my_shirt:Destroy()
-    end
+    elseif my_shirt then my_shirt:Destroy() end
     local my_pants = my_char:FindFirstChildOfClass('Pants')
     if target_app.pants then
-        if not my_pants then
-            my_pants = Instance.new('Pants')
-            my_pants.Parent = my_char
-        end
+        if not my_pants then my_pants = Instance.new('Pants') my_pants.Parent = my_char end
         my_pants.PantsTemplate = target_app.pants
-    elseif my_pants then
-        my_pants:Destroy()
-    end
+    elseif my_pants then my_pants:Destroy() end
     local my_graphic = my_char:FindFirstChildOfClass('ShirtGraphic')
     if target_app.graphic then
-        if not my_graphic then
-            my_graphic = Instance.new('ShirtGraphic')
-            my_graphic.Parent = my_char
-        end
+        if not my_graphic then my_graphic = Instance.new('ShirtGraphic') my_graphic.Parent = my_char end
         my_graphic.Graphic = target_app.graphic
-    elseif my_graphic then
-        my_graphic:Destroy()
-    end
+    elseif my_graphic then my_graphic:Destroy() end
 end
 
 local function AS_TrySpoofEscPreview(target_player)
@@ -493,7 +377,6 @@ local function AS_TrySpoofEscPreview(target_player)
         end
         return nil
     end
-    -- Try gethui() if available (executor hidden UI)
     local roots = {}
     if gethui then
         local ok, hui = pcall(gethui)
@@ -526,15 +409,12 @@ function AvatarSpoofer:Apply()
     local my_char = lp.Character
     local target_char = self.TargetPlayer.Character
     if not my_char or not target_char then return false end
-    if not self.OriginalState then
-        self.OriginalState = AS_SnapshotCharacter(my_char)
-    end
-    local target_app = AS_CaptureAppearance(target_char)
+    if not self.OriginalState then self.OriginalState = AS_SnapshotCharacter(my_char) end
+    local target_app = AS_SnapshotCharacter(target_char)
     if not target_app then return false end
     AS_MirrorAppearance(target_app, my_char)
     AS_TrySpoofEscPreview(self.TargetPlayer)
-    self.Applied = true
-    self.Enabled = true
+    self.Applied = true self.Enabled = true
     return true
 end
 
@@ -559,16 +439,11 @@ function AvatarSpoofer:Clear()
                 my_part.Reflectance = data.Reflectance
                 local my_mesh = my_part:FindFirstChildOfClass('SpecialMesh')
                 if data.MeshId or data.TextureId then
-                    if not my_mesh then
-                        my_mesh = Instance.new('SpecialMesh')
-                        my_mesh.Parent = my_part
-                    end
+                    if not my_mesh then my_mesh = Instance.new('SpecialMesh') my_mesh.Parent = my_part end
                     my_mesh.MeshId = data.MeshId or ''
                     my_mesh.TextureId = data.TextureId or ''
                     if data.MeshScale then my_mesh.Scale = data.MeshScale end
-                elseif my_mesh then
-                    my_mesh:Destroy()
-                end
+                elseif my_mesh then my_mesh:Destroy() end
             end
         end
         local hum = my_char:FindFirstChildOfClass('Humanoid')
@@ -589,8 +464,7 @@ function AvatarSpoofer:Clear()
             my_graphic.Graphic = self.OriginalState.graphic
         elseif my_graphic then my_graphic:Destroy() end
     end
-    self.Applied = false
-    self.Enabled = false
+    self.Applied = false self.Enabled = false
 end
 
 function AvatarSpoofer:Toggle()
@@ -600,30 +474,24 @@ end
 
 _G.eclipse_avatarspoofer = AvatarSpoofer
 
--- Wire avatar spoofer config on load
 do
     local AspCfg = shared.eclipse.Misc['AvatarSpoofer']
     if AspCfg and AspCfg.Enabled and AspCfg.ApplyOnLoad and AspCfg.Target and AspCfg.Target ~= '' then
         task.spawn(function()
             task.wait(1.5)
-            if AvatarSpoofer:SetTarget(AspCfg.Target) then
-                AvatarSpoofer:Apply()
-            end
+            if AvatarSpoofer:SetTarget(AspCfg.Target) then AvatarSpoofer:Apply() end
         end)
     end
 end
 
--- Reapply on respawn
 lp.CharacterAdded:Connect(function()
     task.wait(0.5)
     AvatarSpoofer.OriginalState = nil
-    if AvatarSpoofer.Applied then
-        AvatarSpoofer:Apply()
-    end
+    if AvatarSpoofer.Applied then AvatarSpoofer:Apply() end
 end)
 
 -- ============================================================
--- Wallbang — universal MAP → Ignored reparent
+-- Wallbang
 -- ============================================================
 local Wallbang = {}
 Wallbang.Enabled = false
@@ -637,16 +505,11 @@ local function WB_FindMap()
     for _, child in ipairs(workspace:GetChildren()) do
         if child:IsA('Model') or child:IsA('Folder') then
             local lower = child.Name:lower()
-            if lower == 'map' or lower == 'world' or lower == 'environment' or lower == 'terrain' then
-                return child
-            end
+            if lower == 'map' or lower == 'world' or lower == 'environment' or lower == 'terrain' then return child end
         end
     end
-    -- try Camera target / fallback
     for _, child in ipairs(workspace:GetChildren()) do
-        if child:IsA('Model') and #child:GetChildren() > 20 then
-            return child
-        end
+        if child:IsA('Model') and #child:GetChildren() > 20 then return child end
     end
     return nil
 end
@@ -654,9 +517,7 @@ end
 local function WB_EnsureIgnored()
     local Ignored = workspace:FindFirstChild('Ignored')
     if not Ignored then
-        Ignored = Instance.new('Folder')
-        Ignored.Name = 'Ignored'
-        Ignored.Parent = workspace
+        Ignored = Instance.new('Folder') Ignored.Name = 'Ignored' Ignored.Parent = workspace
     end
     return Ignored
 end
@@ -665,8 +526,7 @@ function Wallbang:Apply()
     if self.Enabled then return end
     local Map = WB_FindMap()
     if not Map then warn('[wallbang] no map model found') return end
-    self.FoundMap = Map
-    self.OriginalParent = Map.Parent
+    self.FoundMap = Map self.OriginalParent = Map.Parent
     Map.Parent = WB_EnsureIgnored()
     self.Enabled = true
 end
@@ -676,8 +536,7 @@ function Wallbang:Restore()
     if self.FoundMap and self.FoundMap.Parent then
         self.FoundMap.Parent = self.OriginalParent or workspace
     end
-    self.FoundMap = nil
-    self.Enabled = false
+    self.FoundMap = nil self.Enabled = false
 end
 
 function Wallbang:Toggle()
@@ -687,8 +546,8 @@ end
 
 Wallbang.Connection = runservice.Heartbeat:Connect(function()
     if not Wallbang.Enabled then return end
-    if self and self.FoundMap and self.FoundMap.Parent == workspace then
-        self.FoundMap.Parent = WB_EnsureIgnored()
+    if Wallbang.FoundMap and Wallbang.FoundMap.Parent == workspace then
+        Wallbang.FoundMap.Parent = WB_EnsureIgnored()
     end
 end)
 
@@ -713,7 +572,6 @@ local RapidFire = {}
 RapidFire.Enabled = false
 RapidFire.Bursting = false
 RapidFire.LastFire = 0
-RapidFire.HookedTools = setmetatable({}, {__mode = 'k'})
 
 local RF_COOLDOWN_FALLBACK = 0.3
 local RF_MIN_DELAY = 0.005
@@ -722,8 +580,7 @@ local function RF_GetCooldown(Tool)
     if not Tool then return RF_COOLDOWN_FALLBACK end
     local Cd = Tool:FindFirstChild('ShootingCooldown')
     if Cd and Cd:IsA('NumberValue') then
-        local v = tonumber(Cd.Value) or RF_COOLDOWN_FALLBACK
-        return math_clamp(v, RF_MIN_DELAY, 1.0)
+        return math_clamp(tonumber(Cd.Value) or RF_COOLDOWN_FALLBACK, RF_MIN_DELAY, 1.0)
     end
     return RF_COOLDOWN_FALLBACK
 end
@@ -737,9 +594,7 @@ local function RF_FireOnce(Tool)
     if Remote and Remote:IsA('RemoteEvent') then
         pcall(function() Remote:FireServer('Shoot') fired = true end)
     end
-    if not fired then
-        pcall(function() Tool:Activate() fired = true end)
-    end
+    if not fired then pcall(function() Tool:Activate() fired = true end) end
     return fired
 end
 
@@ -750,14 +605,11 @@ local function RF_Burst(Tool)
     if not cfg or not cfg.Enabled then return end
     local Count = tonumber(cfg.Burst) or 3
     local BaseDelay = tonumber(cfg.Delay) or 0.02
-    local Cooldown = RF_GetCooldown(Tool)
-    local Delay = math.max(BaseDelay, Cooldown * 0.5)
+    local Delay = math.max(BaseDelay, RF_GetCooldown(Tool) * 0.5)
     RapidFire.Bursting = true
     task.spawn(function()
         for _ = 1, Count do
-            if RF_FireOnce(Tool) then
-                RapidFire.LastFire = tick_func()
-            end
+            if RF_FireOnce(Tool) then RapidFire.LastFire = tick_func() end
             task.wait(Delay)
         end
         RapidFire.Bursting = false
@@ -774,43 +626,34 @@ do
                 if Input.KeyCode ~= Key then return end
                 local Char = lp.Character
                 local Tool = Char and Char:FindFirstChildOfClass('Tool')
-                if Tool and Tool.Name ~= '[Knife]' then
-                    RapidFire.Enabled = true
-                    RF_Burst(Tool)
-                end
+                if Tool and Tool.Name ~= '[Knife]' then RapidFire.Enabled = true RF_Burst(Tool) end
             end)
             uis.InputEnded:Connect(function(Input)
                 if Input.KeyCode == Key then RapidFire.Enabled = false end
             end)
         end
     end
-
     local function AttachToTool(Tool)
         if not Tool or not Tool:IsA('Tool') then return end
         Tool.Activated:Connect(function()
-            if not RapidFire.Enabled then return end
-            if RapidFire.Bursting then return end
+            if not RapidFire.Enabled or RapidFire.Bursting then return end
             RF_Burst(Tool)
         end)
     end
-
     local function AttachToChar(Char)
         if not Char then return end
         for _, Child in ipairs(Char:GetChildren()) do
             if Child:IsA('Tool') then AttachToTool(Child) end
         end
-        Char.ChildAdded:Connect(function(Child)
-            if Child:IsA('Tool') then AttachToTool(Child) end
-        end)
+        Char.ChildAdded:Connect(function(Child) if Child:IsA('Tool') then AttachToTool(Child) end end)
     end
-
     if lp.Character then AttachToChar(lp.Character) end
     lp.CharacterAdded:Connect(AttachToChar)
 end
 _G.eclipse_rapidfire = RapidFire
 
 -- ============================================================
--- Infinite Ammo — force Ammo NumberValue high every tick
+-- Infinite Ammo
 -- ============================================================
 local InfiniteAmmo = {}
 InfiniteAmmo.Enabled = false
@@ -820,9 +663,7 @@ local function IA_ApplyToTool(Tool)
     if not Tool then return end
     local Ammo = Tool:FindFirstChild('Ammo')
     if Ammo and Ammo:IsA('NumberValue') then
-        if Ammo.Value < InfiniteAmmo.ForceValue then
-            Ammo.Value = InfiniteAmmo.ForceValue
-        end
+        if Ammo.Value < InfiniteAmmo.ForceValue then Ammo.Value = InfiniteAmmo.ForceValue end
     end
     local Folder = Tool:FindFirstChild('Configuration') or Tool:FindFirstChild('GunConfig') or Tool:FindFirstChild('Values')
     if Folder then
@@ -876,7 +717,6 @@ _G.eclipse_infammo = InfiniteAmmo
 local BulletDump = {}
 BulletDump.Active = false
 BulletDump.Firing = false
-BulletDump.LastCount = 0
 
 local function BD_GetCooldown(Tool)
     local Cd = Tool and Tool:FindFirstChild('ShootingCooldown')
@@ -900,21 +740,17 @@ end
 function BulletDump:Fire(Tool)
     if self.Firing or not Tool then return end
     if Tool.Name == '[Knife]' or Tool.Name == 'Knife' then return end
-    self.Firing = true
-    self.Active = true
+    self.Firing = true self.Active = true
     local Ammo = Tool:FindFirstChild('Ammo')
     local Count = Ammo and math.max(1, math.floor(tonumber(Ammo.Value) or 1)) or 6
-    self.LastCount = Count
     local Delay = BD_GetCooldown(Tool)
     task.spawn(function()
         for _ = 1, Count do
-            if not Tool.Parent then break end
-            if not BD_FireOnce(Tool) then break end
+            if not Tool.Parent or not BD_FireOnce(Tool) then break end
             task.wait(Delay)
         end
         task.wait(0.05)
-        self.Firing = false
-        self.Active = false
+        self.Firing = false self.Active = false
     end)
 end
 
@@ -926,9 +762,7 @@ do
             if Input.KeyCode ~= Key then return end
             local Char = lp.Character
             local Tool = Char and Char:FindFirstChildOfClass('Tool')
-            if Tool and Tool.Name ~= '[Knife]' then
-                BulletDump:Fire(Tool)
-            end
+            if Tool and Tool.Name ~= '[Knife]' then BulletDump:Fire(Tool) end
         end)
     end
 end
@@ -969,9 +803,7 @@ do
     if Key then
         uis.InputBegan:Connect(function(Input, GP)
             if GP then return end
-            if Input.KeyCode == Key and PanicGround.Enabled then
-                PanicGround:Run()
-            end
+            if Input.KeyCode == Key and PanicGround.Enabled then PanicGround:Run() end
         end)
     end
 end
@@ -996,30 +828,6 @@ local function RS_GetDoubleTapCount(ToolName)
     return 1
 end
 
-local function RS_GetDamageOverrideMode(ToolName)
-    local Cfg = shared.eclipse.Misc['DamageOverrider']
-    if not Cfg or not Cfg.Enabled then return nil end
-    local perWeapon = Cfg.Weapons and Cfg.Weapons[ToolName]
-    if perWeapon then return perWeapon end
-    return Cfg.Mode
-end
-
-local function RS_ApplyDamageOverride(HitInstance)
-    if not HitInstance or not HitInstance.Parent then return HitInstance end
-    local Char = HitInstance:FindFirstAncestorOfClass('Model')
-    if not Char then return HitInstance end
-    local Hum = Char:FindFirstChildOfClass('Humanoid')
-    if not Hum then return HitInstance end
-    local Tool = lp.Character and lp.Character:FindFirstChildOfClass('Tool')
-    local ToolName = Tool and Tool.Name or ''
-    local Mode = RS_GetDamageOverrideMode(ToolName)
-    if not Mode then return HitInstance end
-    local PartName = DamageOverrideMap[Mode]
-    if not PartName then return HitInstance end
-    local TargetPart = Char:FindFirstChild(PartName) or Char:FindFirstChild('HumanoidRootPart')
-    return TargetPart or HitInstance
-end
-
 local function RS_GetRangeBonus()
     local Cfg = shared.eclipse.Misc['RangeEnhancer']
     if not Cfg or not Cfg.Enabled then return 0 end
@@ -1033,10 +841,7 @@ local function RS_ApplyRangeToTool(Tool)
     local R = Tool:FindFirstChild('Range')
     if R and R:IsA('NumberValue') then
         local Base = Tool:GetAttribute('__eclipse_base_range')
-        if type(Base) ~= 'number' then
-            Base = R.Value
-            Tool:SetAttribute('__eclipse_base_range', Base)
-        end
+        if type(Base) ~= 'number' then Base = R.Value Tool:SetAttribute('__eclipse_base_range', Base) end
         R.Value = Base + Bonus
     end
     local Folder = Tool:FindFirstChild('Configuration') or Tool:FindFirstChild('GunConfig') or Tool:FindFirstChild('Values')
@@ -1045,10 +850,7 @@ local function RS_ApplyRangeToTool(Tool)
             local R2 = Folder:FindFirstChild(name)
             if R2 and R2:IsA('NumberValue') then
                 local Base2 = Folder:GetAttribute('__eclipse_base_' .. name)
-                if type(Base2) ~= 'number' then
-                    Base2 = R2.Value
-                    Folder:SetAttribute('__eclipse_base_' .. name, Base2)
-                end
+                if type(Base2) ~= 'number' then Base2 = R2.Value Folder:SetAttribute('__eclipse_base_' .. name, Base2) end
                 R2.Value = Base2 + Bonus
             end
         end
@@ -1077,11 +879,9 @@ task.spawn(function()
 end)
 
 local RAGE_LAST_SHOT = 0
-local RAGE_SHOT_INTERVAL = 0.01
-
 task.spawn(function()
     while true do
-        task.wait(RAGE_SHOT_INTERVAL)
+        task.wait(0.01)
         local Cfg = shared.eclipse.Misc['Rage']
         if Cfg and Cfg.Enabled and RageStack.RageActive then
             local Target = state.target
@@ -1097,9 +897,7 @@ task.spawn(function()
                         RAGE_LAST_SHOT = Now
                         task.spawn(function()
                             local Count = RS_GetDoubleTapCount(Tool.Name)
-                            for _ = 1, Count do
-                                pcall(function() Tool:Activate() end)
-                            end
+                            for _ = 1, Count do pcall(function() Tool:Activate() end) end
                         end)
                     end
                 end
@@ -1109,7 +907,7 @@ task.spawn(function()
 end)
 
 -- ============================================================
--- AutoKill — rapid fire + wallbang + infinite range + force hit
+-- AutoKill
 -- ============================================================
 local AutoKill = {}
 AutoKill.Enabled = false
@@ -1180,13 +978,9 @@ do
 end
 _G.eclipse_autokill = AutoKill
 
--- ============================================================
--- Rage / DoubleTap keybinds
--- ============================================================
 do
     uis.InputBegan:Connect(function(Input, GP)
         if GP then return end
-
         local RageCfg = shared.eclipse.Misc['Rage']
         if RageCfg and RageCfg.Enabled then
             local K = Enum.KeyCode[(shared.eclipse.Binds.Rage or 'R'):upper()]
@@ -1195,7 +989,6 @@ do
                 print('[rage]', RageStack.RageActive and 'on' or 'off')
             end
         end
-
         local DtCfg = shared.eclipse.Misc['DoubleTap']
         if DtCfg and DtCfg.Enabled then
             local Mode = DtCfg.Mode or 'Always'
@@ -1214,7 +1007,6 @@ _G.eclipse_rage = RageStack
 -- ============================================================
 -- ESP backend
 -- ============================================================
-
 local UtilityUI = Instance.new('ScreenGui')
 UtilityUI.Name = 'ciderui'
 UtilityUI.IgnoreGuiInset = true
@@ -1238,31 +1030,22 @@ local function CreateSquare()
     Corner.CornerRadius = UDim.new(0, 0)
     Corner.Parent = Frame
     local Proxy = {}
-    local Meta = {
+    setmetatable(Proxy, {
         __newindex = function(_, Key, Value)
             if Key == 'Size' then Obj._Size = Value Frame.Size = UDim2.fromOffset(Value.X, Value.Y)
-            elseif Key == 'Round' then Obj._Round = Value Corner.CornerRadius = Value and UDim.new(1, 0) or UDim.new(0, 0)
             elseif Key == 'Position' then Obj._Position = Value Frame.Position = UDim2.fromOffset(Value.X, Value.Y)
             elseif Key == 'Color' then Obj._Color = Value Frame.BackgroundColor3 = Value Stroke.Color = Value
             elseif Key == 'Visible' then Obj._Visible = Value Frame.Visible = Value
             elseif Key == 'Filled' then Obj._Filled = Value Frame.BackgroundTransparency = Value and math.clamp(1 - Obj._Transparency, 0, 1) or 1 Stroke.Enabled = not Value
             elseif Key == 'Thickness' then Obj._Thickness = Value Stroke.Thickness = math.clamp(Value, 0.6, 0x7FFFFFFF)
-            elseif Key == 'Transparency' then Obj._Transparency = Value local Alpha = math.clamp(1 - Value, 0, 1) Frame.BackgroundTransparency = Obj._Filled and Alpha or 1 Stroke.Transparency = Alpha end
+            elseif Key == 'Transparency' then Obj._Transparency = Value local a = math.clamp(1 - Value, 0, 1) Frame.BackgroundTransparency = Obj._Filled and a or 1 Stroke.Transparency = a end
         end,
         __index = function(_, Key)
-            if Key == 'Remove' or Key == 'Destroy' then return function() Frame:Destroy() end
-            elseif Key == 'Size' then return Obj._Size
-            elseif Key == 'Round' then return Obj._Round
-            elseif Key == 'Position' then return Obj._Position
-            elseif Key == 'Color' then return Obj._Color
-            elseif Key == 'Visible' then return Obj._Visible
-            elseif Key == 'Filled' then return Obj._Filled
-            elseif Key == 'Thickness' then return Obj._Thickness
-            elseif Key == 'Transparency' then return Obj._Transparency end
-            return nil
+            if Key == 'Remove' or Key == 'Destroy' then return function() Frame:Destroy() end end
+            return Obj['_' .. Key]
         end,
-    }
-    return setmetatable(Proxy, Meta)
+    })
+    return Proxy
 end
 
 local function CreateTextLabel()
@@ -1290,7 +1073,7 @@ local function CreateTextLabel()
     end
     Label:GetPropertyChangedSignal('TextBounds'):Connect(UpdatePosition)
     local Proxy = {}
-    local Meta = {
+    setmetatable(Proxy, {
         __newindex = function(_, Key, Value)
             if Key == 'Text' then Obj._Text = Value Label.Text = Value
             elseif Key == 'Size' then Obj._Size = Value Label.TextSize = Value
@@ -1299,29 +1082,15 @@ local function CreateTextLabel()
             elseif Key == 'Visible' then Obj._Visible = Value Label.Visible = Value
             elseif Key == 'Center' then Obj._Center = Value UpdatePosition()
             elseif Key == 'Outline' then Obj._Outline = Value Stroke.Enabled = Value
-            elseif Key == 'OutlineColor' then Obj._OutlineColor = Value Stroke.Color = Value
-            elseif Key == 'Transparency' then Obj._Transparency = Value local Alpha = math.clamp(1 - Value, 0, 1) Label.TextTransparency = Alpha Stroke.Transparency = Alpha
-            elseif Key == 'Font' then Label.Font = Value
-            elseif Key == 'StrokeThickness' then Stroke.Thickness = Value
-            elseif Key == 'StrokeTransparency' then Stroke.Transparency = Value end
+            elseif Key == 'Transparency' then Obj._Transparency = Value local a = math.clamp(1 - Value, 0, 1) Label.TextTransparency = a Stroke.Transparency = a
+            elseif Key == 'Font' then Label.Font = Value end
         end,
         __index = function(_, Key)
-            if Key == 'TextBounds' then return Label.TextBounds
-            elseif Key == 'Label' then return Label
-            elseif Key == 'Stroke' then return Stroke
-            elseif Key == 'Remove' or Key == 'Destroy' then return function() Label:Destroy() end
-            elseif Key == 'Text' then return Obj._Text
-            elseif Key == 'Size' then return Obj._Size
-            elseif Key == 'Position' then return Obj._Position
-            elseif Key == 'Color' then return Obj._Color
-            elseif Key == 'Visible' then return Obj._Visible
-            elseif Key == 'Center' then return Obj._Center
-            elseif Key == 'Outline' then return Obj._Outline
-            elseif Key == 'Transparency' then return Obj._Transparency end
-            return nil
+            if Key == 'Remove' or Key == 'Destroy' then return function() Label:Destroy() end end
+            return Obj['_' .. Key]
         end,
-    }
-    return setmetatable(Proxy, Meta)
+    })
+    return Proxy
 end
 
 local NameESPDrawings = {}
@@ -1360,15 +1129,8 @@ local function GetStableHealthBarValues(Player, Humanoid)
     return Cache.Health, MaxHealth, Cache.Armor, IsDead
 end
 
-local function RemoveHealthBarSet(Set)
-    if not Set then return end
-    for _, Sq in next, Set do pcall(function() Sq:Remove() end) end
-end
-
-local function HideHealthBarSet(Set)
-    if not Set then return end
-    for _, Sq in next, Set do Sq.Visible = false end
-end
+local function RemoveHealthBarSet(Set) if not Set then return end for _, Sq in next, Set do pcall(function() Sq:Remove() end) end end
+local function HideHealthBarSet(Set) if not Set then return end for _, Sq in next, Set do Sq.Visible = false end end
 
 local state = {
     triggeractive = false, triggerhold = false, target = nil, ctrlheld = false,
@@ -1399,8 +1161,7 @@ local weapons = {
 }
 
 local parts = {
-    r15 = { 'Head', 'UpperTorso', 'LowerTorso', 'LeftUpperArm', 'LeftLowerArm', 'LeftHand', 'RightUpperArm', 'RightLowerArm', 'RightHand', 'LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot', 'RightUpperLeg', 'RightLowerLeg', 'RightFoot' },
-    priority = { 'Head', 'UpperTorso', 'LowerTorso', 'LeftUpperArm', 'RightUpperArm', 'LeftLowerArm', 'RightLowerArm', 'LeftUpperLeg', 'RightUpperLeg', 'LeftLowerLeg', 'RightLowerLeg', 'LeftFoot', 'RightFoot' }
+    priority = { 'Head','UpperTorso','LowerTorso','LeftUpperArm','RightUpperArm','LeftLowerArm','RightLowerArm','LeftUpperLeg','RightUpperLeg','LeftLowerLeg','RightLowerLeg','LeftFoot','RightFoot' }
 }
 
 local SilentTarget = nil
@@ -1411,11 +1172,9 @@ local silentEnabled = true
 
 local weaponCache = { hasGun = false, lastCheck = 0, checkInterval = 0.05 }
 local targetCache = { player = nil, lastCheck = 0, checkInterval = 0.01 }
-local visibilityParams = RaycastParams.new()
-visibilityParams.FilterType = Enum.RaycastFilterType.Exclude
 
 -- ============================================================
--- Infinite Range — Atomic[6]
+-- Infinite Range
 -- ============================================================
 local infRangeActive = false
 
@@ -1435,12 +1194,7 @@ local RangeEnv = {
     [1] = { is = function(s) return s == 'dh' end },
     [2] = {},
     [3] = RangeConst,
-    [4] = { pingMs = function()
-        local ok, v = pcall(function()
-            return game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue()
-        end)
-        return ok and v or 50
-    end },
+    [4] = { pingMs = function() return 50 end },
 }
 
 local AtomicRangeExtend = (function()
@@ -1469,38 +1223,17 @@ do
         if not char then return end
         local tool = char:FindFirstChildOfClass("Tool")
         if not tool then return end
-RangeConst = RangeCfgRead()
-        if AtomicRangeExtend then
-            local origin = cam.CFrame.Position
-            local targetPos = nil
-            local t = state and state.target
-            if t and t.Character then
-                local root = t.Character:FindFirstChild('HumanoidRootPart')
-                local ut = t.Character:FindFirstChild('UpperTorso')
-                targetPos = (ut and ut.Position) or (root and root.Position)
-            end
-            if targetPos then
-                local extended = AtomicRangeExtend(origin, targetPos, tool)
-                if typeof(extended) == 'Vector3' and extended ~= origin then
-                    local camPos = cam.CFrame.Position
-                    local dir = extended - camPos
-                    if dir.Magnitude > 0.001 then
-                        cam.CFrame = CFrame.new(camPos, camPos + dir.Unit) * (cam.CFrame - cam.CFrame.Position)
-                    end
-                end
-            end
-        else
-            local rangeProps = {"Range", "MaxRange", "FireRange", "Distance", "MaxDistance", "BulletDistance"}
+        RangeConst = RangeCfgRead()
+        local rangeProps = {"Range", "MaxRange", "FireRange", "Distance", "MaxDistance", "BulletDistance"}
+        for _, propName in ipairs(rangeProps) do
+            local rv = tool:FindFirstChild(propName)
+            if rv and rv:IsA("NumberValue") then rv.Value = cfg['Max Range'] or 99999 end
+        end
+        local cfgFolder = tool:FindFirstChild("Configuration") or tool:FindFirstChild("GunConfig") or tool:FindFirstChild("Values")
+        if cfgFolder then
             for _, propName in ipairs(rangeProps) do
-                local rv = tool:FindFirstChild(propName)
+                local rv = cfgFolder:FindFirstChild(propName)
                 if rv and rv:IsA("NumberValue") then rv.Value = cfg['Max Range'] or 99999 end
-            end
-            local cfgFolder = tool:FindFirstChild("Configuration") or tool:FindFirstChild("GunConfig") or tool:FindFirstChild("Values")
-            if cfgFolder then
-                for _, propName in ipairs(rangeProps) do
-                    local rv = cfgFolder:FindFirstChild(propName)
-                    if rv and rv:IsA("NumberValue") then rv.Value = cfg['Max Range'] or 99999 end
-                end
             end
         end
     end)
@@ -1526,10 +1259,7 @@ end
 
 local function GetWatermarkPosition(position)
     local vp = cam and cam.ViewportSize
-    if not vp then
-        -- fallback if Camera.ViewportSize is nil
-        vp = Vector2.new(1920, 1080)
-    end
+    if not vp then vp = Vector2.new(1920, 1080) end
     local viewportX = vp.X
     local viewportY = vp.Y
     if position == "Top" then return viewportX / 2, 30
@@ -1565,216 +1295,62 @@ local function UpdateWatermark()
     if cfg.Position == "Left" then alignX = baseX + 20
     elseif cfg.Position == "Right" then alignX = baseX - 20 end
 
+    local function addLine(text, color)
+        idx = idx + 1
+        local lbl = watermarkLabels[idx]
+        if not lbl then return end
+        lbl.Text = text
+        lbl.Color = color
+        lbl.Size = STATUS_SIZE
+        lbl.Font = 3
+        lbl.Position = Vector2.new(alignX, baseY + offsetY)
+        lbl.Visible = true
+        offsetY = offsetY + LINE_HEIGHT
+    end
+
     if shared.eclipse.Combat.Silent.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        local target = state.target
-        local name = target and target.DisplayName or "none"
-        local isLocked = target ~= nil
-        lbl.Text = string.format("silent aim > %s", name)
-        lbl.Color = isLocked and TARGET_RED or CLOVER_GREEN
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
+        local t = state.target
+        local name = t and t.DisplayName or "none"
+        addLine(string.format("silent aim > %s", name), t and TARGET_RED or CLOVER_GREEN)
     end
-
     if shared.eclipse.Combat.Triggerbot.Enabled and (state.triggeractive or state.triggerhold) then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        local target = state.target
-        local name = target and target.DisplayName or "none"
-        local isLocked = target ~= nil
-        lbl.Text = string.format("triggerbot > %s", name)
-        lbl.Color = isLocked and TARGET_RED or CLOVER_GREEN
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
+        local t = state.target
+        local name = t and t.DisplayName or "none"
+        addLine(string.format("triggerbot > %s", name), t and TARGET_RED or CLOVER_GREEN)
     end
-
     if shared.eclipse.Combat.Camlock.Enabled and state.camlockactive then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        local target = state.camtarget
-        local name = target and target.DisplayName or "none"
-        local isLocked = target ~= nil
-        lbl.Text = string.format("camlock > %s", name)
-        lbl.Color = isLocked and TARGET_RED or CLOVER_GREEN
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
+        local t = state.camtarget
+        local name = t and t.DisplayName or "none"
+        addLine(string.format("camlock > %s", name), t and TARGET_RED or CLOVER_GREEN)
     end
-
-    if shared.eclipse.Movement.Speed.Enabled and state.speedactive then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "speed"
-        lbl.Color = CLOVER_GREEN
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if shared.eclipse.Movement.Spiderman.Enabled and state.spidermanactive then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "spiderman"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if shared.eclipse.Visuals.ESP.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "esp"
-        lbl.Color = CLOVER_GREEN
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if Wallbang and Wallbang.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "wallbang"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if RapidFire and RapidFire.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "rapid fire"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if InfiniteAmmo and InfiniteAmmo.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "infinite ammo"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if AutoKill and AutoKill.Enabled then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "autokill"
-        lbl.Color = TARGET_RED
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if _G.eclipse_infrange_active and _G.eclipse_infrange_active() then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "infinite range"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if BulletDump and BulletDump.Active then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "bullet dump"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if RageStack and RageStack.RageActive then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "rage"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if RageStack and RageStack.DoubleTapActive then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "double tap"
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
+    if shared.eclipse.Movement.Speed.Enabled and state.speedactive then addLine("speed", CLOVER_GREEN) end
+    if shared.eclipse.Movement.Spiderman.Enabled and state.spidermanactive then addLine("spiderman", CLOVER_BRIGHT) end
+    if shared.eclipse.Visuals.ESP.Enabled then addLine("esp", CLOVER_GREEN) end
+    if Wallbang and Wallbang.Enabled then addLine("wallbang", CLOVER_BRIGHT) end
+    if RapidFire and RapidFire.Enabled then addLine("rapid fire", CLOVER_BRIGHT) end
+    if InfiniteAmmo and InfiniteAmmo.Enabled then addLine("infinite ammo", CLOVER_BRIGHT) end
+    if AutoKill and AutoKill.Enabled then addLine("autokill", TARGET_RED) end
+    if infRangeActive then addLine("infinite range", CLOVER_BRIGHT) end
+    if BulletDump and BulletDump.Active then addLine("bullet dump", CLOVER_BRIGHT) end
+    if RageStack and RageStack.RageActive then addLine("rage", CLOVER_BRIGHT) end
+    if RageStack and RageStack.DoubleTapActive then addLine("double tap", CLOVER_BRIGHT) end
     if AvatarSpoofer and AvatarSpoofer.Applied then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
         local tname = AvatarSpoofer.TargetPlayer and AvatarSpoofer.TargetPlayer.DisplayName or AvatarSpoofer.TargetUser or "?"
-        lbl.Text = string.format("avatar > %s", tname)
-        lbl.Color = CLOVER_BRIGHT
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
+        addLine(string.format("avatar > %s", tname), CLOVER_BRIGHT)
     end
+    if Panic and Panic.Active then addLine("PANIC", TARGET_RED) end
 
-    if Panic and Panic.Active then
-        idx = idx + 1
-        local lbl = watermarkLabels[idx]
-        lbl.Text = "PANIC"
-        lbl.Color = TARGET_RED
-        lbl.Size = STATUS_SIZE
-        lbl.Font = 3
-        lbl.Position = Vector2.new(alignX, baseY + offsetY)
-        lbl.Visible = true
-        offsetY = offsetY + LINE_HEIGHT
-    end
-
-    if cfg.Position == "Left" then
-        for i = 1, idx do watermarkLabels[i].Center = false watermarkLabels[i].Position = Vector2.new(baseX, watermarkLabels[i].Position.Y) end
-    elseif cfg.Position == "Right" then
-        for i = 1, idx do watermarkLabels[i].Center = false watermarkLabels[i].Position = Vector2.new(baseX, watermarkLabels[i].Position.Y) end
+    if cfg.Position == "Left" or cfg.Position == "Right" then
+        for i = 1, idx do
+            watermarkLabels[i].Center = false
+            watermarkLabels[i].Position = Vector2.new(baseX, watermarkLabels[i].Position.Y)
+        end
     else
-        for i = 1, idx do watermarkLabels[i].Center = true watermarkLabels[i].Position = Vector2.new(baseX, watermarkLabels[i].Position.Y) end
+        for i = 1, idx do
+            watermarkLabels[i].Center = true
+            watermarkLabels[i].Position = Vector2.new(baseX, watermarkLabels[i].Position.Y)
+        end
     end
-
     for i = idx + 1, #watermarkLabels do watermarkLabels[i].Visible = false end
 end
 
@@ -1828,27 +1404,30 @@ local function GetClosestPlayerForSilent()
             local char = plr.Character
             local head = char:FindFirstChild("Head")
             local root = char:FindFirstChild("HumanoidRootPart")
-            if not head or not root then continue end
-            local be = char:FindFirstChild('BodyEffects')
-            local ko = be and be:FindFirstChild('K.O')
-            local ff = char:FindFirstChildOfClass('ForceField')
-            if shared.eclipse.Checks.Knock and ko and ko.Value then continue end
-            if shared.eclipse.Checks.Forcefield and ff then continue end
-            if shared.eclipse.Checks.Crew and eclipse:samecrew(plr) then continue end
-            if not isForceHitActive() then
-                if shared.eclipse.Checks.Visible and not eclipse:visibleadvanced(campos, char) then continue end
-                local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    local fovRadius = shared.eclipse.Combat.Silent.FOV.Radius or 300
-                    if dist < closestDist and dist < fovRadius then
-                        closestDist = dist
-                        closest = plr
+            if head and root then
+                local be = char:FindFirstChild('BodyEffects')
+                local ko = be and be:FindFirstChild('K.O')
+                local ff = char:FindFirstChildOfClass('ForceField')
+                if not (shared.eclipse.Checks.Knock and ko and ko.Value)
+                   and not (shared.eclipse.Checks.Forcefield and ff)
+                   and not (shared.eclipse.Checks.Crew and eclipse:samecrew(plr)) then
+                    if not isForceHitActive() then
+                        if not shared.eclipse.Checks.Visible or eclipse:visibleadvanced(campos, char) then
+                            local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                            if onScreen then
+                                local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                                local fovRadius = shared.eclipse.Combat.Silent.FOV.Radius or 300
+                                if dist < closestDist and dist < fovRadius then
+                                    closestDist = dist
+                                    closest = plr
+                                end
+                            end
+                        end
+                    else
+                        local dist = (cam.CFrame.Position - root.Position).Magnitude
+                        if dist < closestDist then closestDist = dist closest = plr end
                     end
                 end
-            else
-                local dist = (cam.CFrame.Position - root.Position).Magnitude
-                if dist < closestDist then closestDist = dist closest = plr end
             end
         end
     end
@@ -1862,12 +1441,11 @@ local function GetClosestPlayerForSilentOptimized()
         if target and target.Character then
             local head = target.Character:FindFirstChild("Head")
             if head then
-                local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local mousePos = uis:GetMouseLocation()
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    local fovRadius = shared.eclipse.Combat.Silent.FOV.Radius or 300
-                    if dist < fovRadius then return target end
+                local sp, on = cam:WorldToViewportPoint(head.Position)
+                if on then
+                    local mp = uis:GetMouseLocation()
+                    local dist = (Vector2.new(sp.X, sp.Y) - mp).Magnitude
+                    if dist < (shared.eclipse.Combat.Silent.FOV.Radius or 300) then return target end
                 end
             end
         end
@@ -1877,12 +1455,11 @@ local function GetClosestPlayerForSilentOptimized()
         if target and target.Character then
             local head = target.Character:FindFirstChild("Head")
             if head then
-                local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local mousePos = uis:GetMouseLocation()
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    local fovRadius = shared.eclipse.Combat.Silent.FOV.Radius or 300
-                    if dist < fovRadius then
+                local sp, on = cam:WorldToViewportPoint(head.Position)
+                if on then
+                    local mp = uis:GetMouseLocation()
+                    local dist = (Vector2.new(sp.X, sp.Y) - mp).Magnitude
+                    if dist < (shared.eclipse.Combat.Silent.FOV.Radius or 300) then
                         targetCache.lastCheck = now
                         targetCache.player = target
                         return target
@@ -1936,36 +1513,26 @@ local function InstallSilentAimHook()
                     if char then
                         local targetPos = nil
                         local hitpart = isForceHitActive() and "Head" or shared.eclipse.Combat.Silent.Hitpart
-
                         if hitpart == "Closest Point" then
                             local closestData = eclipse:closestpoint(char, false)
-                            if closestData and closestData.position then
-                                targetPos = closestData.position
-                            end
+                            if closestData and closestData.position then targetPos = closestData.position end
                         end
-
                         if not targetPos then
                             local part = char:FindFirstChild(hitpart)
-                            if part and part:IsA('BasePart') then
-                                targetPos = part.Position
-                            end
+                            if part and part:IsA('BasePart') then targetPos = part.Position end
                         end
-
                         if not targetPos then
                             local head = char:FindFirstChild("Head")
                             if head then targetPos = head.Position end
                         end
-
                         if not targetPos then
                             local ut = char:FindFirstChild("UpperTorso")
                             if ut then targetPos = ut.Position end
                         end
-
                         if not targetPos then
                             local root = char:FindFirstChild("HumanoidRootPart")
                             if root then targetPos = root.Position end
                         end
-
                         if targetPos then
                             local pred = shared.eclipse.Combat.Silent.Prediction
                             local root = char:FindFirstChild("HumanoidRootPart")
@@ -1977,20 +1544,17 @@ local function InstallSilentAimHook()
                                     vel.Z * (pred.Z or 0)
                                 )
                             end
-
                             local dir = targetPos - Origin
                             local mag = dir.Magnitude
                             if mag > 0.001 then
-                                IsSilentAiming = true
-                                SilentTarget = target
+                                IsSilentAiming = true SilentTarget = target
                                 return dir.Unit, math.min(mag, MaxDistance or 200)
                             end
                         end
                     end
                 end
             end
-            IsSilentAiming = false
-            SilentTarget = nil
+            IsSilentAiming = false SilentTarget = nil
             if OriginalGetAim then return OriginalGetAim(Origin, MaxDistance, ...) end
             return nil
         end
@@ -2011,13 +1575,14 @@ local function SetupSilentAim()
     warn('[eclipse] silent aim hook failed after 20 attempts')
 end
 
+-- ============================================================
 -- Skin Changer
+-- ============================================================
 local SkinChanger = {}
 SkinChanger.AppliedSkins = {}
 SkinChanger.KnifeData = {}
 SkinChanger.ToolRegistry = {}
 SkinChanger.LastCfgSnapshot = ''
-
 local SkinAssets = rs:FindFirstChild('SkinAssets')
 local SkinModules = rs:FindFirstChild('SkinModules')
 local SkinData = nil
@@ -2029,7 +1594,6 @@ local function IsKnifeSkin(Name)
     return N == 'goldenagetanto' or N == 'gpoknife' or N == 'gpoknifeprestige' or N == 'heaven' or N == 'lovekukri' or N == 'purpledagger' or N == 'bluedagger' or N == 'greendagger' or N == 'reddagger'
 end
 local function NormalizeKey(Value) return tostring(Value):lower():gsub('[%s%-_%(%)%[%]]', '') end
-
 local function TableFind(Tbl, Want)
     if not Tbl or type(Tbl) ~= 'table' or not Want then return nil end
     if Tbl[Want] then return Tbl[Want], Want end
@@ -2039,7 +1603,6 @@ local function TableFind(Tbl, Want)
     end
     return nil
 end
-
 local function LoadSkinData()
     if SkinData then return SkinData end
     if not SkinModules then SkinModules = rs:FindFirstChild('SkinModules') or rs:WaitForChild('SkinModules', 5) end
@@ -2066,7 +1629,6 @@ local function LoadSkinData()
     end
     return SkinData
 end
-
 local function DeepFindSkin(Wanted)
     local Data = LoadSkinData()
     if not Data then return nil, nil end
@@ -2093,7 +1655,6 @@ local function DeepFindSkin(Wanted)
     end
     return walk(Data, 0)
 end
-
 local function PhysicalFindSkin(Wanted)
     if not SkinModules then return nil end
     local WantNorm = NormalizeKey(Wanted)
@@ -2113,7 +1674,6 @@ local function PhysicalFindSkin(Wanted)
     scan(SkinModules, 0)
     return Found
 end
-
 local function GetSkinInfo(WeaponName, SkinName)
     local Data = LoadSkinData()
     if not Data then return nil end
@@ -2134,21 +1694,16 @@ local function GetSkinInfo(WeaponName, SkinName)
     if Deep then return Deep end
     return nil
 end
-
-local function FindSourceMesh(SkinName, WeaponName, IsKnife)
+local function FindSourceMesh(SkinName)
     local _, DirectInst = DeepFindSkin(SkinName)
     if DirectInst and typeof(DirectInst) == 'Instance' then return DirectInst end
-    local Phys = PhysicalFindSkin(SkinName)
-    if Phys then return Phys end
-    return nil
+    return PhysicalFindSkin(SkinName)
 end
-
 local function ExtractMeshFromInfo(Info)
     if not Info then return nil end
     if typeof(Info) == 'Instance' then
         if Info:IsA('MeshPart') then return Info end
-        local m = Info:FindFirstChildOfClass('MeshPart') or Info:FindFirstChildOfClass('BasePart')
-        return m
+        return Info:FindFirstChildOfClass('MeshPart') or Info:FindFirstChildOfClass('BasePart')
     end
     if type(Info) == 'table' then
         for _, key in ipairs({'TextureID','Mesh','MeshPart','Model','CFrame','Texture'}) do
@@ -2167,7 +1722,6 @@ local function ExtractMeshFromInfo(Info)
     end
     return nil
 end
-
 local function ExtractTextureFromInfo(Info)
     if type(Info) ~= 'table' then return nil end
     for _, key in ipairs({'TextureID','Texture','TextureId'}) do
@@ -2176,7 +1730,6 @@ local function ExtractTextureFromInfo(Info)
     end
     return nil
 end
-
 local function HideKnifeDefaults(Tool, SkinRoot)
     local Hidden = {}
     for _, Desc in next, Tool:GetDescendants() do
@@ -2189,7 +1742,6 @@ local function HideKnifeDefaults(Tool, SkinRoot)
     end
     return Hidden
 end
-
 local function RestoreKnifeDefaults(Hidden)
     if not Hidden then return end
     for Part, State in next, Hidden do
@@ -2199,7 +1751,6 @@ local function RestoreKnifeDefaults(Hidden)
         end
     end
 end
-
 local function CleanKnife(Tool, SkipRestore)
     local Data = SkinChanger.KnifeData[Tool]
     local KeptHidden = SkipRestore and Data and Data.hiddenParts or nil
@@ -2218,14 +1769,13 @@ local function CleanKnife(Tool, SkipRestore)
     SkinChanger.KnifeData[Tool] = nil
     return KeptHidden
 end
-
 local function ApplyKnife(Character, Tool, SkinName)
     if Tool.Parent ~= Character then return end
     local Humanoid = Character:FindFirstChild('Humanoid')
     local RHand = Character:FindFirstChild('RightHand')
     if not Humanoid or not RHand then return end
-    local KnifeModel = FindSourceMesh(SkinName, Tool.Name, true)
-    if not KnifeModel then warn('[eclipse] no mesh for knife skin:', SkinName) return end
+    local KnifeModel = FindSourceMesh(SkinName)
+    if not KnifeModel then return end
     local KeptHidden = CleanKnife(Tool, true)
     SkinChanger.KnifeData[Tool] = { track = nil, welds = {}, sounds = {}, hiddenParts = KeptHidden }
     local Data = SkinChanger.KnifeData[Tool]
@@ -2236,44 +1786,25 @@ local function ApplyKnife(Character, Tool, SkinName)
     Clone.Name = SkinName
     Clone:SetAttribute('_skinclone', true)
     local HandleR = Instance.new('Part')
-    HandleR.Name = 'Handle.R'
-    HandleR.Transparency = 1
-    HandleR.CanCollide = false
-    HandleR.Anchored = false
-    HandleR.Size = Vector3.new(0.001, 0.001, 0.001)
-    HandleR.Massless = true
-    HandleR.Parent = Mesh
+    HandleR.Name = 'Handle.R' HandleR.Transparency = 1 HandleR.CanCollide = false
+    HandleR.Anchored = false HandleR.Size = Vector3.new(0.001, 0.001, 0.001)
+    HandleR.Massless = true HandleR.Parent = Mesh
     local M6D = Instance.new('Motor6D')
-    M6D.Name = 'Handle.R'
-    M6D.Part0 = RHand
-    M6D.Part1 = HandleR
-    M6D.Parent = HandleR
+    M6D.Name = 'Handle.R' M6D.Part0 = RHand M6D.Part1 = HandleR M6D.Parent = HandleR
     local N = NormalizeKey(SkinName)
     local Offset = CFrame.new()
     local AnimId, SndId
     if N == 'goldenagetanto' then
         Offset = CFrame.new(0, -0.20, -1.2) * CFrame.Angles(math.rad(90), math.rad(263.7), math.rad(180))
-        AnimId = 'rbxassetid://13473404819'; SndId = 'rbxassetid://5917819099'
+        AnimId = 'rbxassetid://13473404819' SndId = 'rbxassetid://5917819099'
     elseif N == 'gpoknife' or N == 'gpoknifeprestige' then
         Offset = CFrame.new(0, -0.32, -1.07) * CFrame.Angles(math.rad(90), math.rad(-97.4), math.rad(90))
-        AnimId = 'rbxassetid://14014278925'; SndId = 'rbxassetid://4604390759'
+        AnimId = 'rbxassetid://14014278925' SndId = 'rbxassetid://4604390759'
     elseif N == 'heaven' then
         Offset = CFrame.new(-0.02, -0.82, 0.20) * CFrame.Angles(math.rad(64.42), math.rad(3.79), math.rad(0))
-        AnimId = 'rbxassetid://14500266726'; SndId = 'rbxassetid://14489860007'
+        AnimId = 'rbxassetid://14500266726' SndId = 'rbxassetid://14489860007'
     elseif N == 'lovekukri' then
         Offset = CFrame.new(-0.14, 0.14, -1.62) * CFrame.Angles(math.rad(-90), math.rad(180), math.rad(-4.97))
-    elseif N == 'purpledagger' then
-        Offset = CFrame.new(-0.13, -0.24, -1.80) * CFrame.Angles(math.rad(89.05), math.rad(96.63), math.rad(180))
-        AnimId = 'rbxassetid://17824999722'; SndId = 'rbxassetid://17822743153'
-    elseif N == 'bluedagger' then
-        Offset = CFrame.new(-0.13, -0.24, -1.80) * CFrame.Angles(math.rad(89.05), math.rad(96.63), math.rad(180))
-        AnimId = 'rbxassetid://17824995184'; SndId = 'rbxassetid://17822737046'
-    elseif N == 'greendagger' then
-        Offset = CFrame.new(-0.13, -0.24, -1.07) * CFrame.Angles(math.rad(89.05), math.rad(96.63), math.rad(180))
-        AnimId = 'rbxassetid://17825004320'; SndId = 'rbxassetid://17822741762'
-    elseif N == 'reddagger' then
-        Offset = CFrame.new(-0.13, -0.24, -1.07) * CFrame.Angles(math.rad(89.05), math.rad(96.63), math.rad(180))
-        AnimId = 'rbxassetid://17825008844'; SndId = 'rbxassetid://17822952417'
     end
     if Clone:IsA('Model') then
         if not Clone.PrimaryPart then
@@ -2284,12 +1815,9 @@ local function ApplyKnife(Character, Tool, SkinName)
         if Clone.PrimaryPart then
             for _, P in next, Clone:GetDescendants() do
                 if P:IsA('BasePart') then
-                    P.CanCollide = false
-                    P.Massless = true
-                    P.Anchored = false
+                    P.CanCollide = false P.Massless = true P.Anchored = false
                     local W = Instance.new('Weld')
-                    W.Part0 = HandleR
-                    W.Part1 = P
+                    W.Part0 = HandleR W.Part1 = P
                     W.C0 = Offset
                     W.C1 = P.CFrame:ToObjectSpace(Clone.PrimaryPart.CFrame)
                     W.Parent = P
@@ -2299,15 +1827,10 @@ local function ApplyKnife(Character, Tool, SkinName)
         end
         Clone.Parent = Mesh
     elseif Clone:IsA('BasePart') then
-        Clone.CanCollide = false
-        Clone.Massless = true
-        Clone.Anchored = false
+        Clone.CanCollide = false Clone.Massless = true Clone.Anchored = false
         Clone.Parent = Mesh
         local W = Instance.new('Weld')
-        W.Part0 = HandleR
-        W.Part1 = Clone
-        W.C0 = Offset
-        W.Parent = Clone
+        W.Part0 = HandleR W.Part1 = Clone W.C0 = Offset W.Parent = Clone
         table.insert(Data.welds, W)
     end
     Data.hiddenParts = HideKnifeDefaults(Tool, Clone)
@@ -2316,8 +1839,7 @@ local function ApplyKnife(Character, Tool, SkinName)
         local Anim = Instance.new('Animation')
         Anim.AnimationId = AnimId
         local Track = Animator:LoadAnimation(Anim)
-        Track.Looped = false
-        Track:Play()
+        Track.Looped = false Track:Play()
         Data.track = Track
         Anim:Destroy()
         Track.Ended:Once(function()
@@ -2327,14 +1849,11 @@ local function ApplyKnife(Character, Tool, SkinName)
     end
     if SndId then
         local Snd = Instance.new('Sound')
-        Snd.SoundId = SndId
-        Snd.Parent = workspace
-        Snd:Play()
+        Snd.SoundId = SndId Snd.Parent = workspace Snd:Play()
         table.insert(Data.sounds, Snd)
         Snd.Ended:Connect(function() Snd:Destroy() end)
     end
 end
-
 local function HideOriginalGunMeshes(Tool, Default, SkinClone)
     local HiddenParts = {}
     local KeepVisible = { Muzzle = true, Aim = true }
@@ -2350,24 +1869,17 @@ local function HideOriginalGunMeshes(Tool, Default, SkinClone)
     end
     return HiddenParts
 end
-
 local function ApplyGunSkinMesh(Default, SkinMesh, SkinCFrame)
     local Clone = SkinMesh:Clone()
-    Clone.Anchored = false
-    Clone.CanCollide = false
-    Clone.Name = '\0'
-    Clone.CFrame = Default.CFrame
+    Clone.Anchored = false Clone.CanCollide = false Clone.Name = '\0' Clone.CFrame = Default.CFrame
     local Weld = Instance.new('Weld')
-    Weld.Part0 = Clone
-    Weld.Part1 = Default
+    Weld.Part0 = Clone Weld.Part1 = Default
     Weld.C0 = (SkinCFrame or CFrame.new()):Inverse()
-    Weld.Name = '\0'
-    Weld.Parent = Clone
+    Weld.Name = '\0' Weld.Parent = Clone
     Default.Transparency = 1
     Clone.Parent = Default
     return Clone
 end
-
 local function GetShootSound(WeaponName, SkinName)
     if not SkinAssets then return nil end
     local GunShootSounds = SkinAssets:FindFirstChild('GunShootSounds')
@@ -2378,7 +1890,6 @@ local function GetShootSound(WeaponName, SkinName)
     if SoundValue and SoundValue:IsA('StringValue') then return SoundValue.Value end
     return nil
 end
-
 local function ApplyGunHandleParticle(Tool, Handle, SkinName)
     if not SkinAssets or not Tool or not Handle then return end
     local Data = SkinChanger.AppliedSkins[Tool]
@@ -2394,7 +1905,6 @@ local function ApplyGunHandleParticle(Tool, Handle, SkinName)
     ClonedParticle.Name = '\0'
     table.insert(Data.ClonedChildren, ClonedParticle)
 end
-
 local function RemoveSkinFromTool(Tool)
     if not Tool or not SkinChanger.AppliedSkins[Tool] then return end
     CleanKnife(Tool)
@@ -2417,13 +1927,11 @@ local function RemoveSkinFromTool(Tool)
             if Child.Name == '\0' then Child:Destroy() end
         end
         Original.Default.Transparency = Original.OriginalTransparency or 0
-        Original.Default.LocalTransparencyModifier = Original.OriginalLTM or 0
         Original.Default.TextureID = Original.OriginalTextureID or ''
     end
     for _, Child in next, Tool:GetChildren() do
         if Child.Name == '\0' then Child:Destroy() end
     end
-    if Original.OriginalGripCFrame then pcall(function() Tool.GripCFrame = Original.OriginalGripCFrame end) end
     if Original.ShootSound and Original.OriginalShootSoundId then Original.ShootSound.SoundId = Original.OriginalShootSoundId end
     local Handle = Tool:FindFirstChild('Handle')
     if Handle then
@@ -2434,7 +1942,6 @@ local function RemoveSkinFromTool(Tool)
     end
     SkinChanger.AppliedSkins[Tool] = nil
 end
-
 local function ApplySkinToTool(Tool, SkinName)
     if not Tool then return end
     if SkinChanger.AppliedSkins[Tool] and SkinChanger.AppliedSkins[Tool].SkinName == SkinName then return end
@@ -2463,9 +1970,7 @@ local function ApplySkinToTool(Tool, SkinName)
         Default = Default,
         ShootSound = ShootSound,
         OriginalShootSoundId = ShootSound and ShootSound.SoundId or nil,
-        ClonedChildren = {},
-        Connections = {},
-        HiddenParts = {},
+        ClonedChildren = {}, Connections = {}, HiddenParts = {},
     }
     Handle:SetAttribute('SkinName', SkinName)
     local AttrConn = Handle:GetAttributeChangedSignal('SkinName'):Connect(function()
@@ -2475,7 +1980,7 @@ local function ApplySkinToTool(Tool, SkinName)
     local SkinInfo = GetSkinInfo(Tool.Name, SkinName)
     local SkinCFrame = nil
     if type(SkinInfo) == 'table' and typeof(SkinInfo.CFrame) == 'CFrame' then SkinCFrame = SkinInfo.CFrame end
-    local Mesh = ExtractMeshFromInfo(SkinInfo) or FindSourceMesh(SkinName, Tool.Name, false)
+    local Mesh = ExtractMeshFromInfo(SkinInfo) or FindSourceMesh(SkinName)
     if Mesh then
         local NewFake = ApplyGunSkinMesh(Default, Mesh, SkinCFrame)
         SkinChanger.AppliedSkins[Tool].HiddenParts = HideOriginalGunMeshes(Tool, Default, NewFake)
@@ -2495,7 +2000,6 @@ local function ApplySkinToTool(Tool, SkinName)
     local SoundId = GetShootSound(Tool.Name, SkinName)
     if SoundId and SkinChanger.AppliedSkins[Tool].ShootSound then SkinChanger.AppliedSkins[Tool].ShootSound.SoundId = SoundId end
 end
-
 local function GetDesiredSkin(Tool)
     local SkinChangerCfg = GetSkinChangerCfg()
     if not SkinChangerCfg or not SkinChangerCfg['Enabled'] then return nil end
@@ -2509,7 +2013,6 @@ local function GetDesiredSkin(Tool)
     if not ConfiguredSkin or ConfiguredSkin == '' or ConfiguredSkin == 'None' or ConfiguredSkin == 'Default' then return nil end
     return ConfiguredSkin
 end
-
 local function ProcessTool(Tool)
     if not Tool or not Tool:IsA('Tool') then return end
     local DesiredSkin = GetDesiredSkin(Tool)
@@ -2563,33 +2066,24 @@ local function ProcessTool(Tool)
         if lp.Character and Tool.Parent == lp.Character then ApplySkinToTool(Tool, DesiredSkin) end
     end
 end
-
 local function ProcessCharacter(Character)
     if not Character then return end
     for _, Child in next, Character:GetChildren() do
         if Child:IsA('Tool') then ProcessTool(Child) end
     end
     Character.ChildAdded:Connect(function(Child)
-        if Child:IsA('Tool') then
-            task.wait(0.1)
-            ProcessTool(Child)
-        end
+        if Child:IsA('Tool') then task.wait(0.1) ProcessTool(Child) end
     end)
 end
-
 local function ProcessBackpack(Backpack)
     if not Backpack then return end
     for _, Tool in next, Backpack:GetChildren() do
         if Tool:IsA('Tool') then ProcessTool(Tool) end
     end
     Backpack.ChildAdded:Connect(function(Tool)
-        if Tool:IsA('Tool') then
-            task.wait(0.1)
-            ProcessTool(Tool)
-        end
+        if Tool:IsA('Tool') then task.wait(0.1) ProcessTool(Tool) end
     end)
 end
-
 local function RescanAllTools()
     local Char = lp.Character
     if Char then
@@ -2607,7 +2101,6 @@ local function RescanAllTools()
         if not Tool.Parent then SkinChanger.ToolRegistry[Tool] = nil end
     end
 end
-
 local function InitSkinChanger()
     LoadSkinData()
     local Character = lp.Character or lp.CharacterAdded:Wait()
@@ -2689,19 +2182,16 @@ function eclipse:getperspective()
     local zoom = (cam.CFrame.Position - cam.Focus.Position).Magnitude
     return zoom < 1, zoom >= 1
 end
-
 function eclipse:getweapon()
     local char = lp.Character
     if not char then return nil end
     local tool = char:FindFirstChildOfClass('Tool')
     return tool and tool.Name:gsub('[%[%]]', '') or nil
 end
-
 function eclipse:getshotgun()
     local wep = self:getweapon()
     return wep and weapons.shotgun[wep] and wep or nil
 end
-
 function eclipse:triggerdist()
     local cfg = shared.eclipse.Combat.Triggerbot
     local wdist = cfg.WeaponDistances
@@ -2710,7 +2200,6 @@ function eclipse:triggerdist()
     local mapped = weaponmap[wep]
     return mapped and wdist[mapped] or cfg.Distance or 300
 end
-
 function eclipse:splitfov(section)
     local fov
     if section == 'Silent' then fov = getWeaponSpecificFOV('Silent')
@@ -2727,7 +2216,6 @@ function eclipse:splitfov(section)
         return { xleft = sx / 2, xright = sx / 2, yupper = sy / 2, ylower = sy / 2, zleft = sz / 2, zright = sz / 2 }
     end
 end
-
 function eclipse:visible(origin, part, char)
     if not shared.eclipse.Checks.Visible then return true end
     if not part or not part:IsA('BasePart') then return false end
@@ -2738,7 +2226,6 @@ function eclipse:visible(origin, part, char)
     params.FilterDescendantsInstances = {lp.Character, char}
     return not workspace:Raycast(origin, dir, params)
 end
-
 function eclipse:visibleadvanced(origin, char)
     if not shared.eclipse.Checks.Visible then return true end
     if not char then return false end
@@ -2748,26 +2235,22 @@ function eclipse:visibleadvanced(origin, char)
     end
     return false
 end
-
 function eclipse:samecrew(target)
     if not shared.eclipse.Checks.Crew then return false end
     local lc, tc = lp:GetAttribute('CrewID'), target:GetAttribute('CrewID')
     return lc and tc and lc == tc
 end
-
 function eclipse:knocked(target)
     if not target or not target.Character then return false end
     local be = target.Character:FindFirstChild('BodyEffects')
     local ko = be and be:FindFirstChild('K.O')
     return ko and ko.Value
 end
-
 function eclipse:selfknocked()
     local be = lp.Character and lp.Character:FindFirstChild('BodyEffects')
     local ko = be and be:FindFirstChild('K.O')
     return ko and ko.Value
 end
-
 function eclipse:targetpaused()
     if not state.target or not state.target.Character then return true end
     local char = state.target.Character
@@ -2778,7 +2261,6 @@ function eclipse:targetpaused()
     if shared.eclipse.Checks.Forcefield and ff then return true end
     return false
 end
-
 function eclipse:distancetotarget()
     if not state.target or not state.target.Character then return math.huge end
     local troot = state.target.Character:FindFirstChild('HumanoidRootPart')
@@ -2786,7 +2268,6 @@ function eclipse:distancetotarget()
     if not troot or not lroot then return math.huge end
     return (troot.Position - lroot.Position).Magnitude
 end
-
 function eclipse:closestpointfast(char)
     if not char or not char.Parent then return nil end
     local mpos = uis:GetMouseLocation()
@@ -2805,16 +2286,14 @@ function eclipse:closestpointfast(char)
     local root = char:FindFirstChild('HumanoidRootPart')
     return root and {part = root, position = root.Position}
 end
-
 function eclipse:closestpoint(char, iscam)
     if not char or not char.Parent then return nil end
     if state.target and state.target.Character == char then
-        local currentFrame = lastFrameNumber
-        if closestPointFrameCache.char == char and closestPointFrameCache.frame == currentFrame then return closestPointFrameCache.result end
+        if closestPointFrameCache.char == char and closestPointFrameCache.frame == lastFrameNumber then return closestPointFrameCache.result end
     end
     local now = tick_func()
     local root = char:FindFirstChild("HumanoidRootPart")
-    local posHash = root and (tostring_func(math_floor(root.Position.X * 10)) .. "," .. tostring_func(math_floor(root.Position.Y * 10)) .. "," .. tostring_func(math_floor(root.Position.Z * 10))) or "0,0,0"
+    local posHash = root and (math_floor(root.Position.X * 10) .. "," .. math_floor(root.Position.Y * 10) .. "," .. math_floor(root.Position.Z * 10)) or "0,0,0"
     local entry = closestPointLongCache[char]
     if entry and entry.iscam == iscam and (now - entry.timestamp) < CACHE_VALID_TIME and entry.lastPosHash == posHash then return entry.result end
     local mpos = uis:GetMouseLocation()
@@ -2831,32 +2310,6 @@ function eclipse:closestpoint(char, iscam)
             return fallback
         end
         return nil
-    end
-    local priorityParts = parts.priority
-    local best, bdist, bpos = nil, 1e12, nil
-    if root then
-        local center, on = cam:WorldToViewportPoint(root.Position)
-        if not on or center.Z > 250 then
-            local fallback = eclipse:closestpointfast(char)
-            closestPointLongCache[char] = {result = fallback, timestamp = now, iscam = iscam, lastPosHash = posHash}
-            if state.target and state.target.Character == char then
-                closestPointFrameCache.char = char
-                closestPointFrameCache.result = fallback
-                closestPointFrameCache.frame = lastFrameNumber
-            end
-            return fallback
-        end
-        local distToMouse = (Vector2.new(center.X, center.Y) - mpos).Magnitude
-        if distToMouse > 450 then
-            local fallback = eclipse:closestpointfast(char)
-            closestPointLongCache[char] = {result = fallback, timestamp = now, iscam = iscam, lastPosHash = posHash}
-            if state.target and state.target.Character == char then
-                closestPointFrameCache.char = char
-                closestPointFrameCache.result = fallback
-                closestPointFrameCache.frame = lastFrameNumber
-            end
-            return fallback
-        end
     end
     local ray = cam:ViewportPointToRay(mpos.X, mpos.Y)
     local params = RaycastParams.new()
@@ -2882,8 +2335,8 @@ function eclipse:closestpoint(char, iscam)
     local scale = math_clamp(cfgdata.Scale or 0.10, 0, 0.95)
     local density = math_min(cfgdata.Density or 5, 7)
     local partCandidates = {}
-    for i = 1, #priorityParts do
-        local name = priorityParts[i]
+    for i = 1, #parts.priority do
+        local name = parts.priority[i]
         local part = char:FindFirstChild(name)
         if part and part:IsA('BasePart') then
             local s, on = cam:WorldToViewportPoint(part.Position)
@@ -2895,6 +2348,7 @@ function eclipse:closestpoint(char, iscam)
     end
     if #partCandidates > 1 then table_sort(partCandidates, function(a,b) return a.distSq < b.distSq end) end
     local maxCandidates = math_min(6, #partCandidates)
+    local best, bdist, bpos = nil, 1e12, nil
     for i = 1, maxCandidates do
         local part = partCandidates[i].part
         local size = part.Size
@@ -2918,7 +2372,8 @@ function eclipse:closestpoint(char, iscam)
                     end
                 end
             end
-        end    end
+        end
+    end
     local res = best and {part = best, position = bpos} or (root and {part = root, position = root.Position})
     closestPointLongCache[char] = { result = res, timestamp = now, iscam = iscam, lastPosHash = posHash }
     if state.target and state.target.Character == char then
@@ -2928,7 +2383,6 @@ function eclipse:closestpoint(char, iscam)
     end
     return res
 end
-
 function eclipse:getbodypart(char)
     if not char then return nil end
     if isForceHitActive() and state.target and state.target.Character == char then
@@ -2940,14 +2394,12 @@ function eclipse:getbodypart(char)
     if part and part:IsA('BasePart') then return {part = part, position = part.Position} end
     return self:closestpointfast(char)
 end
-
 function eclipse:getcampart(char)
     if not char then return nil end
     local part = char:FindFirstChild(shared.eclipse.Combat.Camlock.Hitpart)
     if part and part:IsA('BasePart') then return {part = part, position = part.Position} end
     return self:closestpointfast(char)
 end
-
 function eclipse:besttarget()
     local closest, cdist = nil, math.huge
     local mpos = uis:GetMouseLocation()
@@ -2972,7 +2424,6 @@ function eclipse:besttarget()
     end
     return closest
 end
-
 function eclipse:cleartarget()
     if not state.target or not state.target.Parent then
         state.target, state.camtarget, state.campart, state.camlockactive = nil, nil, nil, false
@@ -3006,7 +2457,6 @@ function eclipse:cleartarget()
     end
     return false
 end
-
 function eclipse:in2dfov(radius)
     if not state.target or not state.target.Character then return false end
     local root = state.target.Character:FindFirstChild('HumanoidRootPart')
@@ -3015,84 +2465,18 @@ function eclipse:in2dfov(radius)
     if not on or sp.Z <= 0 then return false end
     return (Vector2.new(sp.X, sp.Y) - uis:GetMouseLocation()).Magnitude <= radius
 end
-
 function eclipse:insilentfov()
     if isForceHitActive() then return true end
     local fov = getWeaponSpecificFOV('Silent')
     if fov.Type == '2D' then return self:in2dfov(fov.Radius or 150) end
-    if not state.target or not state.target.Character then return false end
-    local root = state.target.Character:FindFirstChild('HumanoidRootPart')
-    if not root then return false end
-    local ut = state.target.Character:FindFirstChild('UpperTorso')
-    local base = ut and ut.Position or root.Position
-    local look = root.CFrame.LookVector
-    local facing = CFrame.lookAt(Vector3.zero, Vector3.new(look.X, 0, look.Z))
-    local sf = eclipse:splitfov('Silent')
-    local size = Vector3.new(sf.xleft + sf.xright, sf.yupper + sf.ylower, sf.zleft + sf.zright)
-    local off = Vector3.new((sf.xright - sf.xleft)/2, (sf.yupper - sf.ylower)/2, (sf.zright - sf.zleft)/2)
-    local bcf = CFrame.new(base + facing:VectorToWorldSpace(off)) * facing
-    local mpos = uis:GetMouseLocation()
-    local ray = cam:ViewportPointToRay(mpos.X, mpos.Y)
-    local lo = bcf:PointToObjectSpace(ray.Origin)
-    local ld = bcf:VectorToObjectSpace(ray.Direction).Unit
-    local h = size / 2
-    local function slab(o, d, mn, mx)
-        if math_abs(d) < 1e-9 then return (o < mn or o > mx) and {-math.huge, -math.huge} or {-math.huge, math.huge} end
-        local t1, t2 = (mn - o) / d, (mx - o) / d
-        return t1 > t2 and {t2, t1} or {t1, t2}
-    end
-    local tx, ty, tz = slab(lo.X, ld.X, -h.X, h.X), slab(lo.Y, ld.Y, -h.Y, h.Y), slab(lo.Z, ld.Z, -h.Z, h.Z)
-    return math_min(tx[2], ty[2], tz[2]) >= math_max(tx[1], ty[1], tz[1], 0)
+    return state.target ~= nil
 end
-
 function eclipse:incamfov(pos)
     local cfgdata = shared.eclipse.Combat.Camlock.FOV
     local sp = cam:WorldToViewportPoint(pos)
     if sp.Z <= 0 then return false end
     return (Vector2.new(sp.X, sp.Y) - uis:GetMouseLocation()).Magnitude <= (tonumber_func(cfgdata.Radius) or 750)
 end
-
-function eclipse:intriggerfov2d()
-    local fov = getWeaponSpecificFOV('Triggerbot')
-    if not state.target or not state.target.Character then return false end
-    local root = state.target.Character:FindFirstChild('HumanoidRootPart')
-    if not root then return false end
-    local sp, on = cam:WorldToViewportPoint(root.Position)
-    if not on or sp.Z <= 0 then return false end
-    local mousePos = uis:GetMouseLocation()
-    return (Vector2.new(sp.X, sp.Y) - mousePos).Magnitude <= (fov.Radius or 150)
-end
-
-function eclipse:intriggerfov3d()
-    local fov = getWeaponSpecificFOV('Triggerbot')
-    if not state.target or not state.target.Character then return false end
-    local tchar = state.target.Character
-    local root = tchar:FindFirstChild('HumanoidRootPart')
-    if not root then return false end
-    local ut = tchar:FindFirstChild('UpperTorso')
-    local base = ut and ut.Position or root.Position
-    local look = root.CFrame.LookVector
-    local facing = CFrame.lookAt(Vector3.zero, Vector3.new(look.X, 0, look.Z))
-    local tf = eclipse:splitfov('Triggerbot')
-    local size = Vector3.new(tf.xleft + tf.xright, tf.yupper + tf.ylower, tf.zleft + tf.zright)
-    local off = Vector3.new((tf.xright - tf.xleft)/2, (tf.yupper - tf.ylower)/2, (tf.zright - tf.zleft)/2)
-    local bcf = CFrame.new(base + facing:VectorToWorldSpace(off)) * facing
-    local mpos = uis:GetMouseLocation()
-    local ray = cam:ViewportPointToRay(mpos.X, mpos.Y)
-    local lo = bcf:PointToObjectSpace(ray.Origin)
-    local ld = bcf:VectorToObjectSpace(ray.Direction).Unit
-    local h = size / 2
-    local function slab(o, d, mn, mx)
-        if math_abs(d) < 1e-9 then return (o < mn or o > mx) and {-math.huge, -math.huge} or {-math.huge, math.huge} end
-        local t1, t2 = (mn - o) / d, (mx - o) / d
-        return t1 > t2 and {t2, t1} or {t1, t2}
-    end
-    local tx = slab(lo.X, ld.X, -h.X, h.X)
-    local ty = slab(lo.Y, ld.Y, -h.Y, h.Y)
-    local tz = slab(lo.Z, ld.Z, -h.Z, h.Z)
-    return math_min(tx[2], ty[2], tz[2]) >= math_max(tx[1], ty[1], tz[1], 0)
-end
-
 function eclipse:triggerhitbox()
     if not state.target or not state.target.Character then return false end
     local char = state.target.Character
@@ -3106,21 +2490,14 @@ function eclipse:triggerhitbox()
     if result and result.Instance and result.Instance:IsDescendantOf(char) then return true end
     return false
 end
-
-local function shouldTriggerCheck()
-    if isForceTriggerActive() and state.target then return true end
-    return false
-end
-
 function eclipse:triggerstate()
-    if shouldTriggerCheck() then return true end
+    if isForceTriggerActive() and state.target then return true end
     local mode = shared.eclipse.Combat.Triggerbot.Mode
     if mode == 'Always' then return true end
     if mode == 'Toggle' then return state.triggeractive end
     if mode == 'Hold' then return state.triggerhold end
     return false
 end
-
 function eclipse:targetvalid()
     if not state.target then return false end
     local char = state.target.Character
@@ -3134,7 +2511,6 @@ function eclipse:targetvalid()
     if shared.eclipse.Checks.Forcefield and char:FindFirstChildOfClass('ForceField') then return false end
     return true
 end
-
 function eclipse:targetvalidfortrigger()
     if not state.target then return false end
     local char = state.target.Character
@@ -3148,7 +2524,6 @@ function eclipse:targetvalidfortrigger()
     if shared.eclipse.Checks.Forcefield and char:FindFirstChildOfClass('ForceField') then return false end
     return true
 end
-
 function eclipse:cantrigger(part, char)
     if not shared.eclipse.Checks.Visible then return true end
     if not part then return false end
@@ -3162,7 +2537,6 @@ function eclipse:cantrigger(part, char)
     local result = workspace:Raycast(cam.CFrame.Position, dir, params)
     return result == nil
 end
-
 function eclipse:firetrigger()
     local char = lp.Character
     if not char then return end
@@ -3172,7 +2546,6 @@ function eclipse:firetrigger()
     local Count = RS_GetDoubleTapCount(tool.Name)
     for _ = 1, Count do task.spawn(function() tool:Activate() end) end
 end
-
 function eclipse:antifall()
     if not shared.eclipse.Misc.AntiFall then return end
     local char = lp.Character
@@ -3184,7 +2557,6 @@ function eclipse:antifall()
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
-
 local headlessConnection = nil
 local function applyHeadless()
     if not shared.eclipse.Misc.Headless then
@@ -3214,15 +2586,10 @@ local function applyHeadless()
         end)
     end
 end
-
 local function setupHeadless()
     applyHeadless()
-    lp.CharacterAdded:Connect(function()
-        task.wait(0.1)
-        applyHeadless()
-    end)
+    lp.CharacterAdded:Connect(function() task.wait(0.1) applyHeadless() end)
 end
-
 function eclipse:touchingwall()
     local char = lp.Character
     if not char then return false end
@@ -3236,7 +2603,6 @@ function eclipse:touchingwall()
     end
     return false
 end
-
 function eclipse:jumppower()
     local char = lp.Character
     if char and char:FindFirstChildOfClass('Tool') and char:FindFirstChildOfClass('Tool').Name == '[Knife]' then
@@ -3244,7 +2610,6 @@ function eclipse:jumppower()
     end
     return shared.eclipse.Movement.Spiderman.JumpPower
 end
-
 function eclipse:setupwalljump()
     if state.walljumpconn then state.walljumpconn:Disconnect() end
     state.walljumped = false
@@ -3259,7 +2624,6 @@ function eclipse:setupwalljump()
         end
     end)
 end
-
 function eclipse:applyspeed()
     local cfgdata = shared.eclipse.Movement.Speed
     if not cfgdata or not cfgdata.Enabled or not state.speedactive then return end
@@ -3273,21 +2637,16 @@ function eclipse:applyspeed()
     end
     hum.WalkSpeed = speed
 end
-
 function eclipse:resetspeed()
     local hum = lp.Character and lp.Character:FindFirstChildOfClass('Humanoid')
     if hum then hum.WalkSpeed = 16 end
 end
-
 function eclipse:hookhumanoid(hum)
     hum:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
         if shared.eclipse.Movement.Speed.Enabled and state.speedactive then self:applyspeed() end
     end)
-    hum.HealthChanged:Connect(function()
-        if state.speedactive then self:applyspeed() end
-    end)
+    hum.HealthChanged:Connect(function() if state.speedactive then self:applyspeed() end end)
 end
-
 function eclipse:setupchar(char)
     if not char then return end
     state.walljumped = false
@@ -3297,8 +2656,6 @@ function eclipse:setupchar(char)
         self:setupwalljump()
     end
 end
-
--- Spiderman apply
 function eclipse:applyspiderman()
     local cfgdata = shared.eclipse.Movement.Spiderman
     if not cfgdata or not cfgdata.Enabled or not state.spidermanactive then return end
@@ -3312,35 +2669,26 @@ function eclipse:applyspiderman()
     hum.JumpPower = jp
     hum.UseJumpPower = true
 end
-
 function eclipse:resetspiderman()
     local char = lp.Character
     if not char then return end
     local hum = char:FindFirstChildOfClass('Humanoid')
-    if hum then
-        hum.UseJumpPower = false
-    end
+    if hum then hum.UseJumpPower = false end
 end
-
--- ESP
 function eclipse:removeesp(plr)
     local Draw = NameESPDrawings[plr]
     if Draw then pcall(function() Draw:Remove() end) NameESPDrawings[plr] = nil end
     local Set = HealthBarDrawings[plr]
     if Set then RemoveHealthBarSet(Set) HealthBarDrawings[plr] = nil end
     HealthBarValueCache[plr] = nil
-    cache.esp[plr] = nil
-    cache.player[plr] = nil
+    cache.esp[plr] = nil cache.player[plr] = nil
 end
-
 function eclipse:cleanupAllESP()
     for plr in next, NameESPDrawings do pcall(function() NameESPDrawings[plr]:Remove() end) NameESPDrawings[plr] = nil end
     for plr in next, HealthBarDrawings do RemoveHealthBarSet(HealthBarDrawings[plr]) HealthBarDrawings[plr] = nil end
     for plr in next, HealthBarValueCache do HealthBarValueCache[plr] = nil end
-    cache.esp = {}
-    cache.player = {}
+    cache.esp = {} cache.player = {}
 end
-
 function eclipse:updateesp()
     local cfgdata = shared.eclipse.Visuals.ESP
     if not cfgdata.Enabled then
@@ -3353,21 +2701,18 @@ function eclipse:updateesp()
     for plr in next, NameESPDrawings do if not currentPlayers[plr] then eclipse:removeesp(plr) end end
     for plr in next, HealthBarDrawings do
         if not currentPlayers[plr] then
-            local Set = HealthBarDrawings[plr]
-            RemoveHealthBarSet(Set)
+            RemoveHealthBarSet(HealthBarDrawings[plr])
             HealthBarDrawings[plr] = nil
             HealthBarValueCache[plr] = nil
         end
     end
     local FORCED_FONT = Enum.Font.SourceSansBold
-    local camPos = cam.CFrame.Position
     for _, plr in ipairs(players:GetPlayers()) do
         if plr == lp then continue end
         local char = plr.Character
         if not char then
             if NameESPDrawings[plr] then NameESPDrawings[plr].Visible = false end
-            local Set = HealthBarDrawings[plr]
-            if Set then HideHealthBarSet(Set) end
+            local Set = HealthBarDrawings[plr] if Set then HideHealthBarSet(Set) end
             continue
         end
         local root = char:FindFirstChild('HumanoidRootPart')
@@ -3375,28 +2720,22 @@ function eclipse:updateesp()
         local hum = char:FindFirstChildOfClass('Humanoid')
         if not root or not head or not hum or hum.Health <= 0 then
             if NameESPDrawings[plr] then NameESPDrawings[plr].Visible = false end
-            local Set = HealthBarDrawings[plr]
-            if Set then HideHealthBarSet(Set) end
+            local Set = HealthBarDrawings[plr] if Set then HideHealthBarSet(Set) end
             continue
         end
-        local isAnyTarget = (plr == state.target)
-            or (SilentTarget == plr)
-            or (state.camtarget == plr)
+        local isAnyTarget = (plr == state.target) or (SilentTarget == plr) or (state.camtarget == plr)
         local color = isAnyTarget and TARGET_RED or CLOVER_GREEN
         local rp, on = cam:WorldToViewportPoint(root.Position)
         if not on or rp.Z <= 0 then
             if NameESPDrawings[plr] then NameESPDrawings[plr].Visible = false end
-            local Set = HealthBarDrawings[plr]
-            if Set then HideHealthBarSet(Set) end
+            local Set = HealthBarDrawings[plr] if Set then HideHealthBarSet(Set) end
             continue
         end
         local headPos = cam:WorldToViewportPoint(head.Position)
         local footPos = cam:WorldToViewportPoint(root.Position - Vector3.new(0, 2.5, 0))
         if not NameESPDrawings[plr] then
             local Draw = CreateTextLabel()
-            Draw.Outline = true
-            Draw.Center = true
-            Draw.Font = FORCED_FONT
+            Draw.Outline = true Draw.Center = true Draw.Font = FORCED_FONT
             NameESPDrawings[plr] = Draw
         end
         local nameText = NameESPDrawings[plr]
@@ -3406,17 +2745,14 @@ function eclipse:updateesp()
             nameText.Size = cfgdata.FontSize
             nameText.Color = color
             nameText.Position = Vector2.new(math.floor(rp.X + 0.5), math.floor(headPos.Y - cfgdata.FontSize - 4 + 0.5))
-        else
-            nameText.Visible = false
-        end
+        else nameText.Visible = false end
         local HBCfg = shared.eclipse.Visuals.HealthBar
         if HBCfg and HBCfg.Enabled then
             if not HealthBarDrawings[plr] then
                 local Set = {}
                 for _, Key in next, {'HealthBack', 'HealthFill', 'ArmorBack', 'ArmorFill'} do
                     local Sq = CreateSquare()
-                    Sq.Filled = true
-                    Sq.Visible = false
+                    Sq.Filled = true Sq.Visible = false
                     Set[Key] = Sq
                 end
                 HealthBarDrawings[plr] = Set
@@ -3482,8 +2818,7 @@ runservice.RenderStepped:Connect(function()
         if isDead then
             if cache.defaulthrp[plr] then
                 hrp.Size = cache.defaulthrp[plr]
-                hrp.Transparency = 1
-                hrp.CanCollide = true
+                hrp.Transparency = 1 hrp.CanCollide = true
                 cache.defaulthrp[plr] = nil
             end
             local visual = hrp:FindFirstChild("HitboxVisual")
@@ -3493,41 +2828,29 @@ runservice.RenderStepped:Connect(function()
         if not cache.defaulthrp[plr] then cache.defaulthrp[plr] = hrp.Size end
         local original = cache.defaulthrp[plr]
         if not expander.Enabled then
-            hrp.Size = original
-            hrp.Transparency = 1
-            hrp.CanCollide = true
+            hrp.Size = original hrp.Transparency = 1 hrp.CanCollide = true
             local visual = hrp:FindFirstChild("HitboxVisual")
             if visual then visual:Destroy() end
             continue
         end
         local multipliers = getWeaponHitboxMultipliers()
         local visualPart = hrp:FindFirstChild("HitboxVisual")
-        local mx = tonumber_func(multipliers.X) or 1
-        local my = tonumber_func(multipliers.Y) or 1
-        local mz = tonumber_func(multipliers.Z) or 1
+        local mx, my, mz = tonumber_func(multipliers.X) or 1, tonumber_func(multipliers.Y) or 1, tonumber_func(multipliers.Z) or 1
         local newSize = Vector3.new(original.X * mx, original.Y * my, original.Z * mz)
-        hrp.Size = newSize
-        hrp.Transparency = 1
-        hrp.CanCollide = false
+        hrp.Size = newSize hrp.Transparency = 1 hrp.CanCollide = false
         if expander.ShowHitbox then
             local displaySize = newSize
             if mx <= 1.01 and my <= 1.01 and mz <= 1.01 then displaySize = original end
             if not visualPart then
                 visualPart = Instance.new("Part")
-                visualPart.Name = "HitboxVisual"
-                visualPart.Anchored = true
-                visualPart.CanCollide = false
-                visualPart.CanQuery = false
-                visualPart.Material = Enum.Material.Neon
-                visualPart.Color = CLOVER_GREEN
-                visualPart.Transparency = 0.85
-                visualPart.Parent = hrp
+                visualPart.Name = "HitboxVisual" visualPart.Anchored = true
+                visualPart.CanCollide = false visualPart.CanQuery = false
+                visualPart.Material = Enum.Material.Neon visualPart.Color = CLOVER_GREEN
+                visualPart.Transparency = 0.85 visualPart.Parent = hrp
             end
             visualPart.Size = displaySize
             visualPart.CFrame = hrp.CFrame
-        else
-            if visualPart then visualPart:Destroy() end
-        end
+        elseif visualPart then visualPart:Destroy() end
     end
 end)
 
@@ -3542,8 +2865,7 @@ local function onCharacterAdded(plr)
             local visual = hrp:FindFirstChild("HitboxVisual")
             if visual then visual:Destroy() end
             hrp.Size = Vector3.new(2, 1.25, 1)
-            hrp.Transparency = 1
-            hrp.CanCollide = true
+            hrp.Transparency = 1 hrp.CanCollide = true
         end
     end)
 end
@@ -3552,14 +2874,9 @@ for _, plr in pairs(players:GetPlayers()) do if plr ~= lp then onCharacterAdded(
 players.PlayerAdded:Connect(function(plr) if plr ~= lp then onCharacterAdded(plr) end end)
 players.PlayerRemoving:Connect(function(plr) eclipse:removeesp(plr) cache.defaulthrp[plr] = nil end)
 
-local function onCharacterRemoving(plr)
-    eclipse:removeesp(plr)
-    cache.defaulthrp[plr] = nil
-end
-
 for _, plr in players:GetPlayers() do
     if plr ~= lp then
-        plr.CharacterRemoving:Connect(function() onCharacterRemoving(plr) end)
+        plr.CharacterRemoving:Connect(function() eclipse:removeesp(plr) cache.defaulthrp[plr] = nil end)
         plr.CharacterAdded:Connect(function(char)
             local hum = char:WaitForChild("Humanoid")
             hum.Died:Connect(function()
@@ -3569,8 +2886,7 @@ for _, plr in players:GetPlayers() do
                     if visual then visual:Destroy() end
                     if cache.defaulthrp[plr] then
                         hrp.Size = cache.defaulthrp[plr]
-                        hrp.Transparency = 1
-                        hrp.CanCollide = true
+                        hrp.Transparency = 1 hrp.CanCollide = true
                     end
                     cache.defaulthrp[plr] = nil
                 end
@@ -3629,7 +2945,6 @@ task.spawn(function() while task.wait(0.48) do if state.speedactive then eclipse
 task.spawn(function() while task.wait(1) do if lp.Character then local hum = lp.Character:FindFirstChildOfClass('Humanoid') if hum and not state.walljumpconn then eclipse:setupwalljump() end end end end)
 task.spawn(function() while true do task.wait(6) local now = tick_func() for char, data in pairs(closestPointLongCache) do if (now - data.timestamp) > 2 then closestPointLongCache[char] = nil end end end end)
 
--- Spiderman loop
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -3645,28 +2960,19 @@ end)
 
 if lp.Character then eclipse:setupchar(lp.Character) end
 
--- ============================================================
--- Master keybind handler
--- ============================================================
 uis.InputBegan:Connect(function(input, gp)
     if gp then return end
     local key = input.KeyCode
 
-    -- PANIC toggle/hold
     local panicCfg = shared.eclipse.Panic
     if panicCfg and panicCfg.Enabled then
         local pk = Enum.KeyCode[(panicCfg.Keybind or 'L'):upper()]
         if pk and key == pk then
-            if panicCfg.KeyMode == 'Hold' then
-                Panic:Apply()
-            else
-                Panic:Toggle()
-            end
+            if panicCfg.KeyMode == 'Hold' then Panic:Apply() else Panic:Toggle() end
             return
         end
     end
 
-    -- TARGETING mode toggle/hold
     local tgtCfg = shared.eclipse.Targeting
     if tgtCfg and tgtCfg.Keybind then
         local tk = Enum.KeyCode[(tgtCfg.Keybind or 'C'):upper()]
@@ -3726,7 +3032,6 @@ uis.InputBegan:Connect(function(input, gp)
         shared.eclipse.Visuals.ESP.Enabled = not shared.eclipse.Visuals.ESP.Enabled
         if not shared.eclipse.Visuals.ESP.Enabled then eclipse:cleanupAllESP() end
     end
-    -- Spiderman key
     local spCfg = shared.eclipse.Movement.Spiderman
     if spCfg and spCfg.Keybind then
         local sk = Enum.KeyCode[(spCfg.Keybind or 'B'):upper()]
@@ -3757,14 +3062,11 @@ uis.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.LeftControl then state.ctrlheld = false end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then state.rightclick = false end
 
-    -- Panic hold release
     local panicCfg = shared.eclipse.Panic
     if panicCfg and panicCfg.Enabled and panicCfg.KeyMode == 'Hold' then
         local pk = Enum.KeyCode[(panicCfg.Keybind or 'L'):upper()]
         if pk and input.KeyCode == pk then Panic:Release() return end
     end
-
-    -- Targeting hold release
     local tgtCfg = shared.eclipse.Targeting
     if tgtCfg and tgtCfg.KeyMode == 'Hold' and tgtCfg.Keybind then
         local tk = Enum.KeyCode[(tgtCfg.Keybind or 'C'):upper()]
@@ -3774,8 +3076,6 @@ uis.InputEnded:Connect(function(input)
             return
         end
     end
-
-    -- Spiderman hold release
     local spCfg = shared.eclipse.Movement.Spiderman
     if spCfg and spCfg.KeyMode == 'Hold' and spCfg.Keybind then
         local sk = Enum.KeyCode[(spCfg.Keybind or 'B'):upper()]
@@ -3785,7 +3085,6 @@ uis.InputEnded:Connect(function(input)
             return
         end
     end
-
     local binds = shared.eclipse.Binds
     if input.KeyCode == Enum.KeyCode[binds.CameraAimbot] then
         state.campressed = false
@@ -3819,8 +3118,7 @@ runservice.RenderStepped:Connect(function(dt)
         SilentTarget = GetClosestPlayerForSilentOptimized()
         IsSilentAiming = SilentTarget ~= nil
     else
-        SilentTarget = nil
-        IsSilentAiming = false
+        SilentTarget = nil IsSilentAiming = false
     end
     local silentcfg = getWeaponSpecificFOV('Silent')
     local triggercfg = getWeaponSpecificFOV('Triggerbot')
@@ -3835,45 +3133,37 @@ runservice.RenderStepped:Connect(function(dt)
     if silentcfg.Show and silentcfg.Type == '2D' then
         if not cache.fov.silent2d then
             cache.fov.silent2d = Drawing.new('Circle')
-            cache.fov.silent2d.Thickness = 1.5
-            cache.fov.silent2d.Filled = false
-            cache.fov.silent2d.Transparency = 1
-            cache.fov.silent2d.Color = CLOVER_GREEN
+            cache.fov.silent2d.Thickness = 1.5 cache.fov.silent2d.Filled = false
+            cache.fov.silent2d.Transparency = 1 cache.fov.silent2d.Color = CLOVER_GREEN
         end
         cache.fov.silent2d.Position = Vector2.new(mpos.X, mpos.Y)
         cache.fov.silent2d.Radius = silentcfg.Radius or 150
         cache.fov.silent2d.Visible = true
-        if SilentTarget then cache.fov.silent2d.Color = TARGET_RED else cache.fov.silent2d.Color = CLOVER_GREEN end
+        cache.fov.silent2d.Color = SilentTarget and TARGET_RED or CLOVER_GREEN
     elseif cache.fov.silent2d then cache.fov.silent2d.Visible = false end
     if triggercfg.Show and triggercfg.Type == '2D' then
         if not cache.fov.trigger2d then
             cache.fov.trigger2d = Drawing.new('Circle')
-            cache.fov.trigger2d.Thickness = 1.5
-            cache.fov.trigger2d.Filled = false
-            cache.fov.trigger2d.Transparency = 1
-            cache.fov.trigger2d.Color = CLOVER_GREEN
+            cache.fov.trigger2d.Thickness = 1.5 cache.fov.trigger2d.Filled = false
+            cache.fov.trigger2d.Transparency = 1 cache.fov.trigger2d.Color = CLOVER_GREEN
         end
         cache.fov.trigger2d.Position = Vector2.new(mpos.X, mpos.Y)
         cache.fov.trigger2d.Radius = triggercfg.Radius or 150
         cache.fov.trigger2d.Visible = true
     elseif cache.fov.trigger2d then
-        cache.fov.trigger2d:Remove()
-        cache.fov.trigger2d = nil
+        cache.fov.trigger2d:Remove() cache.fov.trigger2d = nil
     end
     if camcfg.Show and camcfg.Type == '2D' then
         if not cache.fov.cam2d then
             cache.fov.cam2d = Drawing.new('Circle')
-            cache.fov.cam2d.Thickness = 1.5
-            cache.fov.cam2d.Filled = false
-            cache.fov.cam2d.Transparency = 1
-            cache.fov.cam2d.Color = CLOVER_GREEN
+            cache.fov.cam2d.Thickness = 1.5 cache.fov.cam2d.Filled = false
+            cache.fov.cam2d.Transparency = 1 cache.fov.cam2d.Color = CLOVER_GREEN
         end
         cache.fov.cam2d.Position = Vector2.new(mpos.X, mpos.Y)
         cache.fov.cam2d.Radius = tonumber_func(camcfg.Radius) or 750
         cache.fov.cam2d.Visible = true
     elseif cache.fov.cam2d then
-        cache.fov.cam2d:Remove()
-        cache.fov.cam2d = nil
+        cache.fov.cam2d:Remove() cache.fov.cam2d = nil
     end
     if eclipse:cleartarget() then state.currenttarget = nil return end
     if eclipse:targetpaused() then return end
@@ -3897,10 +3187,8 @@ runservice.RenderStepped:Connect(function(dt)
         local sf = eclipse:splitfov('Silent')
         if not cache.target.hitbox then
             cache.target.hitbox = Instance.new('Part')
-            cache.target.hitbox.Anchored = true
-            cache.target.hitbox.CanCollide = false
-            cache.target.hitbox.Transparency = 1
-            cache.target.hitbox.CanQuery = false
+            cache.target.hitbox.Anchored = true cache.target.hitbox.CanCollide = false
+            cache.target.hitbox.Transparency = 1 cache.target.hitbox.CanQuery = false
             cache.target.hitbox.Parent = workspace
         end
         local size = Vector3.new(sf.xleft + sf.xright, sf.yupper + sf.ylower, sf.zleft + sf.zright)
@@ -3925,10 +3213,8 @@ runservice.RenderStepped:Connect(function(dt)
         local tf = eclipse:splitfov('Triggerbot')
         if not cache.target.trigger then
             cache.target.trigger = Instance.new('Part')
-            cache.target.trigger.Anchored = true
-            cache.target.trigger.CanCollide = false
-            cache.target.trigger.Transparency = 1
-            cache.target.trigger.CanQuery = false
+            cache.target.trigger.Anchored = true cache.target.trigger.CanCollide = false
+            cache.target.trigger.Transparency = 1 cache.target.trigger.CanQuery = false
             cache.target.trigger.Parent = workspace
         end
         local size = Vector3.new(tf.xleft + tf.xright, tf.yupper + tf.ylower, tf.zleft + tf.zright)
@@ -4022,9 +3308,7 @@ local function unloadEclipse()
     eclipse:cleanupAllESP()
     for plr in next, NameESPDrawings do pcall(function() NameESPDrawings[plr]:Remove() end) end
     for plr in next, HealthBarDrawings do RemoveHealthBarSet(HealthBarDrawings[plr]) end
-    NameESPDrawings = {}
-    HealthBarDrawings = {}
-    HealthBarValueCache = {}
+    NameESPDrawings = {} HealthBarDrawings = {} HealthBarValueCache = {}
     if UtilityUI and UtilityUI.Parent then pcall(function() UtilityUI:Destroy() end) end
     for _, d in pairs(cache.fov) do if d and d.Remove then pcall(function() d:Remove() end) end end
     cache.fov = {}
@@ -4041,24 +3325,14 @@ local function unloadEclipse()
     end
     if oldrandom and hookfunction then hookfunction(math.random, oldrandom) end
     for Tool in next, SkinChanger.AppliedSkins do pcall(RemoveSkinFromTool, Tool) end
-    SkinChanger.AppliedSkins = {}
-    SkinChanger.KnifeData = {}
-    SkinChanger.ToolRegistry = {}
+    SkinChanger.AppliedSkins = {} SkinChanger.KnifeData = {} SkinChanger.ToolRegistry = {}
     if Wallbang then
         if Wallbang.Connection then Wallbang.Connection:Disconnect() end
         Wallbang:Restore()
     end
-    if RageStack then
-        RageStack.RageActive = false
-        RageStack.DoubleTapActive = false
-    end
-    if BulletDump then
-        BulletDump.Firing = false
-        BulletDump.Active = false
-    end
-    if AvatarSpoofer then
-        AvatarSpoofer:Clear()
-    end
+    if RageStack then RageStack.RageActive = false RageStack.DoubleTapActive = false end
+    if BulletDump then BulletDump.Firing = false BulletDump.Active = false end
+    if AvatarSpoofer then AvatarSpoofer:Clear() end
     if AutoKill then AutoKill.Enabled = false end
     if InfiniteAmmo then InfiniteAmmo.Enabled = false end
 end
